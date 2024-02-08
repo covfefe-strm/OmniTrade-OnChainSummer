@@ -58,7 +58,7 @@ const config: HardhatUserConfig = {
     // apiKey: MUMBAISCAN_KEY,
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
 };
 

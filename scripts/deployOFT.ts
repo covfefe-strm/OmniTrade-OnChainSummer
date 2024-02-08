@@ -6,6 +6,7 @@ async function main() {
   const endpointAddress = layerZeroEndpointsList.filter((obj) => {
     return obj.ChainID === hardhat.network.config.chainId;
   })[0].GatewayContract;
+  console.log(endpointAddress);
   const oft = await myOFT.deploy(
     "MyFirstOFT", // OFT name
     "MYOFT", // OFT symbol
