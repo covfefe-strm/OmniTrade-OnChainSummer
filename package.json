@@ -1,0 +1,39 @@
+{
+  "name": "streamerInu-omni-token",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "format:solidity": "prettier --write contracts/*.sol contracts/**/*.sol",
+    "format:js": "prettier-eslint --eslint-config-path ./.eslintrc.js --write '**/*.js'",
+    "check:solidity": "solhint -c .solhint.json -w 0 contracts/*.sol contracts/**/*.sol",
+    "check:js": "eslint ."
+  },
+  "devDependencies": {
+    "@layerzerolabs/solidity-examples": "^1.1.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.3",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.4",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.4.1",
+    "@typechain/ethers-v5": "^11.1.2",
+    "@typechain/hardhat": "^9.1.0",
+    "dotenv": "^16.3.1",
+    "eslint": "^8.55.0",
+    "eslint-config-google": "^0.14.0",
+    "ethers": "^6.10.0",
+    "hardhat": "^2.19.5",
+    "npm": "^10.4.0",
+    "prettier": "^3.1.1",
+    "prettier-eslint-cli": "^8.0.1",
+    "prettier-plugin-solidity": "^1.2.0",
+    "solhint": "^4.0.0",
+    "solhint-plugin-prettier": "^0.1.0",
+    "solidity-coverage": "^0.8.5",
+    "typechain": "^8.3.2"
+  },
+  "dependencies": {
+    "@0xsquid/sdk": "^2.8.9",
+    "@openzeppelin/contracts": "^5.0.1"
+  }
+}
