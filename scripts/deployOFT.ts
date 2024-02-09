@@ -5,11 +5,11 @@ async function main() {
   const myOFT = await ethers.getContractFactory("MyOFT");
   const endpointAddress = layerZeroEndpointsList.filter((obj) => {
     return obj.ChainID === hardhat.network.config.chainId;
-  })[0].GatewayContract;
+  })[0].endpoint;
   console.log(endpointAddress);
   const oft = await myOFT.deploy(
-    "MyFirstOFT", // OFT name
-    "MYOFT", // OFT symbol
+    "StreamerInuTest", // OFT name
+    "STR", // OFT symbol
     8, // shared decimals for your OFT
     endpointAddress, // chain endpoint address
   );

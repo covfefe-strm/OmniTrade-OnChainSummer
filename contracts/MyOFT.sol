@@ -10,6 +10,6 @@ contract MyOFT is OFTV2 {
         uint8 _sharedDecimals,
         address _lzEndpoint
     ) OFTV2 (_name, _symbol,_sharedDecimals,_lzEndpoint){
-        _mint(_msgSender(), 100 * 10**_sharedDecimals);
+        _mint(_msgSender(), 1_000_000_000 * 10**_sharedDecimals);
     }
 }
