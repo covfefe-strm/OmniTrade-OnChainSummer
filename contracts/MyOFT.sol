@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.23;
 
 import "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
 
@@ -13,9 +13,9 @@ contract MyOFT is OFTV2 {
     _mint(_msgSender(), 1 ether * 10 ** _sharedDecimals);
   }
 
-  function mint(address recipient, uint256 amount) onlyOwner {
+  function mint(address recipient, uint256 amount) public onlyOwner {
     require(recipient != address(0), "Must not be zero address");
     require(amount > 0, "Zero amount");
-    _mint(receiver, amount);
+    _mint(recipient, amount);
   }
 }

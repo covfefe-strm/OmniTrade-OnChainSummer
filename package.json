@@ -9,6 +9,8 @@
     "check:js": "eslint ."
   },
   "devDependencies": {
+    "@axelar-network/axelar-cgp-solidity": "^6.2.1",
+    "@axelar-network/axelar-gmp-sdk-solidity": "^5.6.4",
     "@layerzerolabs/solidity-examples": "^1.1.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.3",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",

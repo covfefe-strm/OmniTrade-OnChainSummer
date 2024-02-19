@@ -15,16 +15,17 @@ const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
 const { BSCSCAN_KEY, MUMBAISCAN_KEY } = process.env;
 
 const config: HardhatUserConfig = {
-  typechain: {
-    target: "ethers-v5",
-  },
+  // typechain: {
+  //   target: "ethers-v5",
+  // },
   solidity: {
-    version: "0.8.20",
+    version: "0.8.23",
     settings: {
       optimizer: {
         enabled: true,
         runs: 1000,
       },
+      viaIR: true,
     },
   },
   networks: {
