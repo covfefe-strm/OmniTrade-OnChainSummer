@@ -41,6 +41,7 @@ interface ISquidMulticall {
     bytes payload;
   }
 
+  error AlreadyRunning();
   /// Thrown when the multicall contract does not hold any of the ERC20 token targeted by a
   /// FullTokenBalance call. The call is thus likely to be faulty.
   /// @param token Address of the faulty ERC20 token.

@@ -4,16 +4,16 @@ pragma solidity 0.8.23;
 import { ISquidRouter } from "../interfaces/ISquidRouter.sol";
 import { ISquidMulticall } from "../interfaces/ISquidMulticall.sol";
 import { IPermit2 } from "../interfaces/uniswap/IPermit2.sol";
-import { IInterchainTokenService } from "../interfaces/its/IInterchainTokenService.sol";
+// import { IInterchainTokenService } from "../interfaces/its/IInterchainTokenService.sol";
 import { ICFReceiver } from "../interfaces/chainflip/ICFReceiver.sol";
 import { ICCTPTokenMessenger } from "../interfaces/cctp/ICCTPTokenMessenger.sol";
-import { IAxelarGasService } from "@axelar-network/axelar-cgp-solidity/contracts/interfaces/IAxelarGasService.sol"; // Deprecated
+import { IAxelarGasService } from "@axelar-network/axelar-cgp-solidity/contracts/interfaces/IAxelarGasService.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { AxelarExpressExecutable } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/express/AxelarExpressExecutable.sol";
 import { InterchainTokenExpressExecutable } from "../interfaces/its/InterchainTokenExpressExecutable.sol";
 import { Upgradable } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/upgradable/Upgradable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+// import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { StorageSlot } from "../libraries/StorageSlot.sol";
 import { SquidPermit2 } from "./SquidPermit2.sol";
 import { RoledPausable } from "../libraries/RoledPausable.sol";
@@ -65,9 +65,8 @@ contract SquidRouter is
     InterchainTokenExpressExecutable(_interchainTokenService)
     SquidPermit2(_permit2)
   {
-    if (
-      _squidMulticall == address(0) || _interchainTokenService == address(0) || _axelarGasService == address(0) // Deprecated
-    ) revert ZeroAddressProvided();
+    if (_squidMulticall == address(0) || _interchainTokenService == address(0) || _axelarGasService == address(0))
+      revert ZeroAddressProvided();
 
     squidMulticall = _squidMulticall;
     chainflipVault = _chainflipVault;
@@ -405,7 +404,7 @@ contract SquidRouter is
     }
 
     ISquidMulticall(squidMulticall).run{ value: valueToSend }(calls);
-
+    // gateway is Axelar Gateway contract
     address bridgedTokenAddress = gateway.tokenAddresses(bridgedTokenSymbol);
     _bridgeCall(
       bridgedTokenSymbol,
