@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@0xsquid/sdk": "^2.8.9",
+    "@axelar-network/axelarjs-sdk": "^0.14.1",
     "@openzeppelin/contracts": "^4.9.4"
   }
 }
