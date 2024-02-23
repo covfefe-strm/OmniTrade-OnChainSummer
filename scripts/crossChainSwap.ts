@@ -132,43 +132,25 @@ async function main() {
   console.log("call1payload", call1payload);
   console.log("call3data", call3data);
   const axelarCallABI = [
-    "tuple(uint256 callType, address target, uint256 value, bytes callData, bytes payload)[]",
+    "tuple(uint256, address, uint256, bytes, bytes)[]",
     "address",
     "bytes32",
   ];
   const axelarCallData = abiCoder.encode(axelarCallABI, [
     [
-      {
-        callType: 3n,
-        target: "0x0000000000000000000000000000000000000000",
-        value: 0n,
-        callData: "0x",
-        payload: call0Payload,
-      },
-      {
-        callType: 1n,
-        target: aUSDC_Mumbai,
-        value: 0n,
-        callData: call1data,
-        payload: call1payload,
-      },
-      {
-        callType: 0n,
-        target: swapRouter02Mumbai,
-        value: 0n,
-        callData: call2data,
-        payload: "0x",
-      },
-      {
-        callType: 0n,
-        target: testCounter,
-        value: 0n,
-        callData: call3data,
-        payload: "0x",
-      },
+      [
+        3n,
+        "0x0000000000000000000000000000000000000000",
+        0n,
+        "0x",
+        call0Payload,
+      ],
+      [1n, aUSDC_Mumbai, 0n, call1data, call1payload],
+      [0n, swapRouter02Mumbai, 0n, call2data, "0x"],
+      [0n, testCounter, 0n, call3data, "0x"],
     ],
     devAddress,
-    "0x",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
   ]);
   // struct Call {
   //   CallType callType;
@@ -222,7 +204,7 @@ async function main() {
   //   bytes payload; '0x'
   // }
 
-  const tx = await sqdRouter.callBridgeCall.staticCall(
+  const tx = await sqdRouter.callBridgeCall(
     nativeCur,
     ethers.parseEther("0.0001"),
     [
