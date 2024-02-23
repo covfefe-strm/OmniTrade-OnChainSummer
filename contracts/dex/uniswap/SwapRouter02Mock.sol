@@ -11,6 +11,13 @@ contract SwapRouter02Mock {
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
     }
+
+    struct ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
     
     uint256 private val;
 
@@ -19,6 +26,10 @@ contract SwapRouter02Mock {
         payable
         returns (uint256 amountOut)
     {
+        val++;
+    }
+
+    function exactInput(ExactInputParams memory params) external payable returns (uint256 amountOut) {
         val++;
     }
 }
