@@ -19,14 +19,18 @@ const config: HardhatUserConfig = {
   //   target: "ethers-v5",
   // },
   solidity: {
-    version: "0.8.23",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 1000,
+    compilers: [
+      {
+        version: "0.8.23",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000,
+          },
+          viaIR: true,
+        },
       },
-      viaIR: true,
-    },
+    ],
   },
   networks: {
     hardhat: {
