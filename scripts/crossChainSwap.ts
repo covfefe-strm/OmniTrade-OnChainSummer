@@ -204,7 +204,7 @@ async function main() {
   //   bytes payload; '0x'
   // }
 
-  const tx = await sqdRouter.callBridgeCall(
+  const tx = await sqdRouter.callBridgeCall.staticCall(
     nativeCur,
     ethers.parseEther("0.0001"),
     [
@@ -224,6 +224,8 @@ async function main() {
     false,
     { value: ethers.parseEther("0.1") },
   );
+
+  console.log(tx);
 
   // const tx = await sqdRouter.callBridgeCall.staticCall(
   //   nativeCur,
