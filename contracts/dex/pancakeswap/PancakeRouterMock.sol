@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 import './interfaces/IPancakeRouter02.sol';
 
