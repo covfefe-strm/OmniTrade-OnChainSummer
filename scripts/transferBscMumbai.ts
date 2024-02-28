@@ -1,4 +1,4 @@
-import { layerZeroEndpointsList } from "./deployHelpers/constants";
+import { layerZeroEndpointsList } from "./helpers/constants";
 import { ethers } from "hardhat";
 import hardhat from "hardhat";
 async function main() {}

@@ -4,26 +4,29 @@ import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/o
 import {IOFTV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/interfaces/IOFTV2.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IPancakeRouter02} from "./dex/pancakeswap/interfaces/IPancakeRouter02.sol";
 
-contract StreamerInuRouter is IOFTReceiverV2, Ownable {
-    enum DexType {
-        Uniswap,
-        PancakeSwap
+contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
+    struct Call {
+        address target;
+        uint256 value;
+        bytes callData;
     }
+
+    mapping(address => uint256) public reservedTokens;
+    uint256 public totalLocked;
+    address public si; // SI token
+    address public squidMultical;
+    bytes public adapterParams;
+
     error NotSquidMultical();
     error ZeroAddress();
     error NotEnoughBalance();
     error NotEnoughSiBalance();
     error ZeroSIBalance();
-
-    mapping(address => uint256) public reservedTokens;
-    uint256 public totalLocked;
-    address public trustedDEX;
-    address public si; // SI token
-    address squidMultical;
-    bytes public adapterParams;
+    error CallFailed(uint256 callIndex, bytes errorData);
 
     modifier onlySquidMultical() {
         if (_msgSender() != squidMultical) {
@@ -32,25 +35,17 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable {
         _;
     }
 
-    constructor(bytes memory _adapterParams, address _trustedDEX, address _si) {
-        if (_trustedDEX == address(0) || _si == address(0)) {
+    constructor(bytes memory _adapterParams, address _si) {
+        if (_si == address(0)) {
             revert ZeroAddress();
         }
         adapterParams = _adapterParams;
-        trustedDEX = _trustedDEX;
         si = _si;
     }
 
     //  ADMIN
     function setAdapterParam(bytes calldata _adapterParams) external onlyOwner {
         adapterParams = _adapterParams;
-    }
-
-    function setTrustedDex(address _trustedDex) external onlyOwner {
-        if (_trustedDex == address(0)) {
-            revert ZeroAddress();
-        }
-        trustedDEX = _trustedDex;
     }
 
     function setSIToken(address _si) external onlyOwner {
@@ -87,21 +82,29 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable {
         totalLocked += _amount;
     }
 
+    // to do it we can just use Calls similar to SquidMultisig
     function sellSI(
-        DexType _dexType,
-        bytes calldata uniswapPath,
-        address[] calldata pancakeSwapPath,
-        uint256 amountOutMin,
+        Call[] calldata calls,
         uint16 _dstChainId,
         bytes32 _toAddress,
         address _refundAddress,
         uint256 amount
-    ) external payable {
+    ) external payable nonReentrant {
         if (reservedTokens[_msgSender()] == 0) {
             revert ZeroSIBalance();
         }
-        // swap logic
-        _sendFromOFT(_dstChainId, _toAddress, _refundAddress, amount);
+        _runSwap(calls);
+        //call squidRouter to swap USDC to another token and transfer the token to original chain
+    }
+
+    function _runSwap(Call[] calldata calls) internal {
+        for (uint256 i; i < calls.length; i++) {
+            Call memory call = calls[i];
+            (bool success, bytes memory data) = call.target.call{
+                value: call.value
+            }(call.callData);
+            if (!success) revert CallFailed(i, data);
+        }
     }
 
     function _sendFromOFT(
