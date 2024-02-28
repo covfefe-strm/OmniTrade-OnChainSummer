@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-import './interfaces/IPancakeRouter02.sol';
+import "./interfaces/IPancakeRouter02.sol";
 
-contract PancakeRouter is IPancakeRouter02 {
+contract PancakeRouterMock is IPancakeRouter02 {
     uint256 private val1;
+
     function addLiquidity(
         address tokenA,
         address tokenB,
@@ -16,6 +17,7 @@ contract PancakeRouter is IPancakeRouter02 {
     ) external returns (uint amountA, uint amountB, uint liquidity) {
         val1 = amountADesired;
     }
+
     function addLiquidityETH(
         address token,
         uint amountTokenDesired,
@@ -23,7 +25,11 @@ contract PancakeRouter is IPancakeRouter02 {
         uint amountETHMin,
         address to,
         uint deadline
-    ) external payable returns (uint amountToken, uint amountETH, uint liquidity) {
+    )
+        external
+        payable
+        returns (uint amountToken, uint amountETH, uint liquidity)
+    {
         val1 = deadline;
     }
 
@@ -38,6 +44,7 @@ contract PancakeRouter is IPancakeRouter02 {
     ) public returns (uint amountA, uint amountB) {
         val1 = liquidity;
     }
+
     function removeLiquidityETH(
         address token,
         uint liquidity,
@@ -48,6 +55,7 @@ contract PancakeRouter is IPancakeRouter02 {
     ) public returns (uint amountToken, uint amountETH) {
         val1 = liquidity;
     }
+
     function removeLiquidityWithPermit(
         address tokenA,
         address tokenB,
@@ -56,10 +64,14 @@ contract PancakeRouter is IPancakeRouter02 {
         uint amountBMin,
         address to,
         uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external returns (uint amountA, uint amountB) {
         val1 = liquidity;
     }
+
     function removeLiquidityETHWithPermit(
         address token,
         uint liquidity,
@@ -67,7 +79,10 @@ contract PancakeRouter is IPancakeRouter02 {
         uint amountETHMin,
         address to,
         uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external returns (uint amountToken, uint amountETH) {
         val1 = liquidity;
     }
@@ -83,6 +98,7 @@ contract PancakeRouter is IPancakeRouter02 {
     ) public returns (uint amountETH) {
         val1 = liquidity;
     }
+
     function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
         address token,
         uint liquidity,
@@ -90,7 +106,10 @@ contract PancakeRouter is IPancakeRouter02 {
         uint amountETHMin,
         address to,
         uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external returns (uint amountETH) {
         val1 = liquidity;
     }
@@ -114,33 +133,45 @@ contract PancakeRouter is IPancakeRouter02 {
     ) external returns (uint[] memory amounts) {
         val1 = amountOut;
     }
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        payable
-        returns (uint[] memory amounts)
-    {
+
+    function swapExactETHForTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts) {
         val1 = amountOutMin;
     }
-    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-        external
-        returns (uint[] memory amounts)
-    {
+
+    function swapTokensForExactETH(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts) {
         val1 = amountOut;
     }
-    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        returns (uint[] memory amounts)
-    {
+
+    function swapExactTokensForETH(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts) {
         val1 = amountIn;
     }
-    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
-        external
-        payable
-        
-        returns (uint[] memory amounts)
-    {
+
+    function swapETHForExactTokens(
+        uint amountOut,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts) {
         val1 = amountOut;
     }
+
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(
         uint amountIn,
         uint amountOutMin,
@@ -150,65 +181,59 @@ contract PancakeRouter is IPancakeRouter02 {
     ) external {
         val1 = amountIn;
     }
+
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
         uint amountOutMin,
         address[] calldata path,
         address to,
         uint deadline
-    )
-        external
-        payable
-    {
+    ) external payable {
         val1 = amountOutMin;
     }
+
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
         uint amountIn,
         uint amountOutMin,
         address[] calldata path,
         address to,
         uint deadline
-    )
-        external
-    {
+    ) external {
         val1 = amountOutMin;
     }
 
-    function quote(uint amountA, uint reserveA, uint reserveB) public pure returns (uint amountB) {
-    }
+    function quote(
+        uint amountA,
+        uint reserveA,
+        uint reserveB
+    ) public pure returns (uint amountB) {}
 
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
-        public
-        pure
-        returns (uint amountOut)
-    {
-    }
+    function getAmountOut(
+        uint amountIn,
+        uint reserveIn,
+        uint reserveOut
+    ) public pure returns (uint amountOut) {}
 
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
-        public
-        pure
-        returns (uint amountIn)
-    {
-    }
+    function getAmountIn(
+        uint amountOut,
+        uint reserveIn,
+        uint reserveOut
+    ) public pure returns (uint amountIn) {}
 
-    function getAmountsOut(uint amountIn, address[] memory path)
-        public
-        view
-        returns (uint[] memory amounts)
-    {
-    }
+    function getAmountsOut(
+        uint amountIn,
+        address[] memory path
+    ) public view returns (uint[] memory amounts) {}
 
-    function getAmountsIn(uint amountOut, address[] memory path)
-        public
-        view
-        returns (uint[] memory amounts)
-    {
-    }
+    function getAmountsIn(
+        uint amountOut,
+        address[] memory path
+    ) public view returns (uint[] memory amounts) {}
 
-    function WETH() external pure returns (address){
+    function WETH() external pure returns (address) {
         return address(0);
     }
 
-    function factory() external pure returns (address){
+    function factory() external pure returns (address) {
         return address(0);
     }
 }

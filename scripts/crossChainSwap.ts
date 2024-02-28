@@ -12,7 +12,7 @@ import {
   IPancakeRouter01,
 } from "../typechain-types";
 import { Contract, Provider } from "ethers";
-import { abi as PancakeRouterABI } from "../artifacts/contracts/dex/pancakeswap/PancakeRouterMock.sol/PancakeRouter.json";
+import { abi as PancakeRouterABI } from "../artifacts/contracts/dex/pancakeswap/PancakeRouterMock.sol/PancakeRouterMock.json";
 import { abi as MyOFTABI } from "../artifacts/contracts/MyOFT.sol/MyOFT.json";
 import { abi as SwapRouter02ABI } from "../artifacts/contracts/dex/uniswap/SwapRouter02Mock.sol/SwapRouter02Mock.json";
 import { abi as TestCounterABI } from "../artifacts/contracts/test/TestCounter.sol/TestCounter.json";

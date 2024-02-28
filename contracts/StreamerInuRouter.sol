@@ -18,7 +18,7 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
     mapping(address => uint256) public reservedTokens;
     uint256 public totalLocked;
     address public si; // SI token
-    address public squidMultical;
+    address public squidMulticall;
     bytes public adapterParams;
 
     error NotSquidMultical();
@@ -28,20 +28,27 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
     error ZeroSIBalance();
     error CallFailed(uint256 callIndex, bytes errorData);
 
-    modifier onlySquidMultical() {
-        if (_msgSender() != squidMultical) {
+    modifier onlySquidMulticall() {
+        if (_msgSender() != squidMulticall) {
             revert NotSquidMultical();
         }
         _;
     }
 
-    constructor(bytes memory _adapterParams, address _si) {
-        if (_si == address(0)) {
+    constructor(
+        bytes memory _adapterParams,
+        address _si,
+        address _squidMulticall
+    ) {
+        if (_squidMulticall == address(0) || _si == address(0)) {
             revert ZeroAddress();
         }
+        squidMulticall = _squidMulticall;
         adapterParams = _adapterParams;
         si = _si;
     }
+
+    function deposit() external payable {}
 
     //  ADMIN
     function setAdapterParam(bytes calldata _adapterParams) external onlyOwner {
@@ -55,11 +62,18 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
         si = _si;
     }
 
+    function setSquidMulticall(address _squidMulticall) external onlyOwner {
+        if (_squidMulticall == address(0)) {
+            revert ZeroAddress();
+        }
+        squidMulticall = _squidMulticall;
+    }
+
     function sendOFTTokenToOwner(
         uint16 _dstChainId,
         bytes32 _toAddress,
         address _refundAddress
-    ) public payable onlySquidMultical {
+    ) public payable onlySquidMulticall {
         uint256 siBalance = IERC20(si).balanceOf(address(this));
         uint256 amount;
         if (siBalance <= totalLocked) {
