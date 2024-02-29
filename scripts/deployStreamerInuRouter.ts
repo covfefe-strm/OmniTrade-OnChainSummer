@@ -8,7 +8,7 @@ async function main() {
   const StreamerInuRouter =
     await ethers.getContractFactory("StreamerInuRouter");
   const si = crossChainAddresses.mumbai.SI;
-  // console.log(contractAddresses);
+  const squidMulticall = crossChainAddresses.mumbai.SquidMulticall;
   const adapterParams = ethers.solidityPacked(
     ["uint16", "uint256"],
     [1, 200000],
@@ -17,7 +17,7 @@ async function main() {
   const streamerInuRouter = await StreamerInuRouter.deploy(
     adapterParams,
     si,
-    "0x25E6c6519b5eD521ddA2BD64cd99d5a90a5242BC",
+    squidMulticall,
   );
   // Wait for the deployment to finish
   await streamerInuRouter.waitForDeployment();

@@ -15,6 +15,8 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
         bytes callData;
     }
 
+    event OFTTokensReceived(address indexed recipient, uint256 amount);
+
     mapping(address => uint256) public reservedTokens;
     uint256 public totalLocked;
     address public si; // SI token
@@ -22,6 +24,7 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
     bytes public adapterParams;
 
     error NotSquidMultical();
+    error NotSIToken();
     error ZeroAddress();
     error NotEnoughBalance();
     error NotEnoughSiBalance();
@@ -31,6 +34,13 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
     modifier onlySquidMulticall() {
         if (_msgSender() != squidMulticall) {
             revert NotSquidMultical();
+        }
+        _;
+    }
+
+    modifier onlySIToken() {
+        if (_msgSender() != si) {
+            revert NotSIToken();
         }
         _;
     }
@@ -89,11 +99,14 @@ contract StreamerInuRouter is IOFTReceiverV2, Ownable, ReentrancyGuard {
         uint64 /* _nonce */,
         bytes32 _from,
         uint _amount,
-        bytes calldata /* _payload */
-    ) external override {
-        address from = address(uint160(uint256(_from)));
-        reservedTokens[from] += _amount;
+        bytes calldata _payload
+    ) external override onlySIToken {
+        address recipient = _payload.length < 32
+            ? address(uint160(uint256(_from)))
+            : abi.decode(_payload, (address));
+        reservedTokens[recipient] += _amount;
         totalLocked += _amount;
+        emit OFTTokensReceived(recipient, _amount);
     }
 
     // to do it we can just use Calls similar to SquidMultisig
