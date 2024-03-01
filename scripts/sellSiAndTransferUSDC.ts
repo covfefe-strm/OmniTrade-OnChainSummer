@@ -2,7 +2,12 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "hardhat";
 import hardhat from "hardhat";
-import { MyOFT, MyOFT__factory } from "../typechain-types";
+import {
+  MyOFT,
+  MyOFT__factory,
+  StreamerInuRouter,
+  StreamerInuRouter__factory,
+} from "../typechain-types";
 import { Contract, Provider } from "ethers";
 import { abi as PancakeRouterABI } from "../artifacts/contracts/dex/pancakeswap/PancakeRouterMock.sol/PancakeRouterMock.json";
 import { abi as MyOFTABI } from "../artifacts/contracts/MyOFT.sol/MyOFT.json";
@@ -37,25 +42,33 @@ async function main() {
   );
   const bscWallet = new ethers.Wallet(DEV_PRIVATE_KEY, bscProvider);
   const mumbaiWallet = new ethers.Wallet(DEV_PRIVATE_KEY, mumbaiProvider);
-  const OFTFactoryBSC: MyOFT__factory = (await ethers.getContractFactory(
-    "MyOFT",
-    bscWallet,
-  )) as MyOFT__factory;
+  //   const OFTFactoryBSC: MyOFT__factory = (await ethers.getContractFactory(
+  //     "MyOFT",
+  //     bscWallet,
+  //   )) as MyOFT__factory;
   const OFTFactoryMumbai: MyOFT__factory = (await ethers.getContractFactory(
     "MyOFT",
     mumbaiWallet,
   )) as MyOFT__factory;
-  const oftBSC: MyOFT = (await OFTFactoryBSC.attach(STR_BSC)) as MyOFT;
+  const SIRouterFactory: StreamerInuRouter__factory =
+    (await ethers.getContractFactory(
+      "StreamerInuRouter",
+      mumbaiWallet,
+    )) as StreamerInuRouter__factory;
+  //   const oftBSC: MyOFT = (await OFTFactoryBSC.attach(STR_BSC)) as MyOFT;
   const oftMumbai: MyOFT = (await OFTFactoryMumbai.attach(STR_MUMBAI)) as MyOFT;
-  let toAddress = ethers.zeroPadValue(SIRouterMumbai, 32);
+  const stramerInuRoter: StreamerInuRouter = (await SIRouterFactory.attach(
+    SIRouterMumbai,
+  )) as StreamerInuRouter;
+  let toAddress = ethers.zeroPadValue(devAddress, 32);
   console.log("toAddress", toAddress);
   // gas cost of the function "onOFTReceived" = ~83000 gas
-  let amountOfGas = 105000; // total amoutn of gas for execution on destination chain
-  let postHookGas = 85000; // amount of gas for post hook transaction execution
+  let amountOfGas = 20000; // total amoutn of gas for execution on destination chain
   const adapterParams = ethers.solidityPacked(
     ["uint16", "uint256"],
     [1, amountOfGas],
   );
+  //   const transferAmount
   console.log("adapterParams", adapterParams);
   const abiCoder = new ethers.AbiCoder();
   const recipientPayload = abiCoder.encode(["address"], [devAddress2]);
@@ -67,17 +80,13 @@ async function main() {
   };
   let amountToTransfer = ethers.parseEther("1");
 
-  let transactionGasCost = (
-    await oftBSC.estimateSendAndCallFee(
-      layerZeroEndpointsList[1].endpointId,
-      toAddress,
-      amountToTransfer,
-      recipientPayload,
-      amountOfGas,
-      false,
-      adapterParams,
-    )
-  )[0];
+  const [nativeFee, zroFee] = await oftMumbai.estimateSendFee(
+    layerZeroEndpointsList[0].endpointId,
+    toAddress,
+    transferAmount,
+    false, // false indicates no ZRO payment will be made
+    adapterParams,
+  );
   console.log("transactionGasCost", transactionGasCost);
   // to ensure that transaction will not fail
   await oftBSC.sendAndCall.staticCall(
