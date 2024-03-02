@@ -77,7 +77,7 @@ async function main() {
   // covering the axelar cross chain swap
   // axelar scan requested 4.6 matic for execution of the transaction
   // but in the end cost of the transaction cost ~2 matic -_-
-  const transactionValue = ethers.parseEther("4");
+  const transactionValue = ethers.parseEther("2.2");
   // Calls on Mumbai chain - swap SI to aUSDC
   /* 
     0x2F7c52B0Dad83f193890821aC72b40fA15DC4d34 STR
@@ -163,7 +163,7 @@ async function main() {
   const blockTimestamp = (
     await bscProvider.getBlock(await bscProvider.getBlockNumber())
   ).timestamp;
-  const deadline = blockTimestamp + 60 * 10;
+  const deadline = blockTimestamp + 60 * 20;
   const call2data = InterfacePancakeRouter01.encodeFunctionData(
     "swapExactTokensForTokens",
     [
