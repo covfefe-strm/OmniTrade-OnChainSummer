@@ -21,7 +21,7 @@ const InterfaceOFTToken = new ethers.Interface(MyOFTABI);
 const InterfaceSwapRouter = new ethers.Interface(SwapRouter02ABI);
 const InterfaceTestCounter = new ethers.Interface(TestCounterABI);
 //test
-const SIRouterMumbai = "0xF5207ac4510255Ae0aFC42EbCEc98d0cEdFB8F0E";
+const SIRouterMumbai = "0x5Eb9940d9182B625c7516209F0Cf6e9BeDcaF360";
 // tokens
 const STR_BSC = "0xd2eE4CC081ACC37dA499d16F050ebDaef74082b1";
 const STR_MUMBAI = "0x2F7c52B0Dad83f193890821aC72b40fA15DC4d34";
@@ -58,7 +58,7 @@ async function main() {
   );
   console.log("adapterParams", adapterParams);
   const abiCoder = new ethers.AbiCoder();
-  const recipientPayload = abiCoder.encode(["address"], [devAddress2]);
+  const recipientPayload = "0x"; //abiCoder.encode(["address"], [devAddress2]);
   console.log("recipientPayload", recipientPayload);
   let callParams = {
     refundAddress: devAddress,
