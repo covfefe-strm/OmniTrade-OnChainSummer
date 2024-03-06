@@ -133,8 +133,8 @@ async function main() {
   console.log("gasCostOfOFTTransf", gasCostOfOFTTransf);
   const amountOfaUSDC = (
     await quoter.quoteExactOutputSingle.staticCallResult(
-      "0x2c852e740B62308c46DD29B982FBb650D063Bd07",
-      "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889",
+      crossChainAddresses.mumbai.aUSDC,
+      crossChainAddresses.mumbai.wETH,
       100n,
       gasCostOfOFTTransf,
       0,
@@ -153,6 +153,7 @@ async function main() {
     )
   )[0][0];
   console.log("amountOfBNBToSwap", amountOfBNBToSwap);
+
   const blockTimestamp = (
     await bscProvider.getBlock(await bscProvider.getBlockNumber())
   ).timestamp;
@@ -168,7 +169,7 @@ async function main() {
   const calldataSwapWBNBtoaUSDC = InterfacePancakeRouter01.encodeFunctionData(
     "swapExactETHForTokens",
     [
-      ethers.parseUnits("1", 6), //amountOutMin
+      1, //amountOutMin
       [WBNB_BSC, aUSDC_BSC],
       sqdRouterProxyBSC,
       deadline,
@@ -192,11 +193,11 @@ async function main() {
     CALL#1
     here you need transfer amount of aUSDC tokens which you want to swap for MATIC
     usualy it must be equal to "amountOfaUSDC" variable
-    but in this example we will swap only 0.01 aUSDC
+    but in this example we will swap only 0.0001 aUSDC
   */
   const call1data = InterfaceOFTToken.encodeFunctionData("transfer", [
     swapRouter02Mumbai,
-    ethers.parseUnits("1", 4),
+    ethers.parseUnits("1", 2),
   ]);
   const call1 = [0n, aUSDC_Mumbai, 0n, call1data, "0x"];
   /* 
@@ -286,7 +287,30 @@ async function main() {
       bytes payload;
     }
   */
-  const tx = await sqdRouter.callBridgeCall(
+  console.log("static call start");
+  console.log("devAddressBytes32", devAddressBytes32);
+  await sqdRouter.callBridgeCall.staticCall(
+    nativeCur,
+    amountOfBNBToSwap,
+    [
+      {
+        callType: 2n,
+        target: dexRouterBSC,
+        value: 0n,
+        callData: calldataSwapWBNBtoaUSDC,
+        payload: "0x",
+      },
+    ],
+    "aUSDC",
+    "Polygon",
+    sqdRouterProxyMumbai,
+    axelarCallData, //calldata for axelar
+    devAddress,
+    false,
+    { value: ethers.parseEther("0.1") },
+  );
+  console.log("call start");
+  /* const tx = await sqdRouter.callBridgeCall(
     nativeCur,
     amountOfBNBToSwap,
     [
@@ -307,7 +331,7 @@ async function main() {
     { value: ethers.parseEther("0.1") },
   );
 
-  console.log(tx);
+  console.log(tx); */
 }
 main().catch((error) => {
   console.error(error);
