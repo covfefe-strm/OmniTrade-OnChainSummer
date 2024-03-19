@@ -11,7 +11,7 @@ import {ISquidRouter} from "./squidrouter/interfaces/ISquidRouter.sol";
 import {IStreamerInuRouter, ISquidMulticall} from "./interfaces/IStreamerInuRouter.sol";
 string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 
-/*    _____ _                                    _____             _____             _            
+/* _____ _                                    _____             _____             _            
   / ____| |                                  |_   _|           |  __ \           | |           
  | (___ | |_ _ __ ___  __ _ _ __ ___   ___ _ __| |  _ __  _   _| |__) |___  _   _| |_ ___ _ __ 
   \___ \| __| '__/ _ \/ _` | '_ ` _ \ / _ \ '__| | | '_ \| | | |  _  // _ \| | | | __/ _ \ '__|
@@ -22,16 +22,19 @@ string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 /// @title StreamerInuRouter
 /// @notice The purpose of the contract send and receive OFT StreamInu token for safe crosschain trading.
 contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
-    /// @dev destinationChainId => chain name;
-    mapping(uint16 => string) public chainIdName;
-    /// @dev destinationChainId => squidRouter address;
-    mapping(uint16 => string) public chainIdSquidRouter;
+    
     /// @notice stores amount of SI tokens reserved for sender or recipient
     /// @dev address of sender or recipient => amount of SI token
     mapping(address => uint256) public reservedTokens;
-    /// @notice stores total amount of reserved tokens
+    /// @notice stores amount of reserved native tokens which will be used to cover OFT transfer
+    /// @dev address of sender or recipient => amount of researved native tokens
+    mapping(address => uint256) public nativeBalance;
+    /// @notice stores total amount of reserved SI tokens
     /// @return total amount of reserved tokens
     uint256 public totalLocked;
+    /// @notice stores total amount of reserved native tokens
+    /// @return total amount of reserved tokens
+    uint256 public totalNativeLocked;
     /// @notice stores address of SI token
     /// @return address of SI token
     address public si;
@@ -41,10 +44,6 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     /// @notice stores address of SquidMulticall contract
     /// @return address of SquidMulticall
     address public squidMulticall;
-    /// @notice stores encoded adapter params for OFT cross chain transfers
-    /// @dev It is defualt adapter params only for call function "sendFrom"
-    /// @return adapter params
-    bytes public adapterParams;
 
     modifier onlySquidMulticall() {
         if (_msgSender() != squidMulticall) {
@@ -61,7 +60,6 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     }
 
     constructor(
-        bytes memory _adapterParams,
         address _si,
         address _squidRouter,
         address _squidMulticall
@@ -75,44 +73,16 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
         squidMulticall = _squidMulticall;
         squidRouter = _squidRouter;
-        adapterParams = _adapterParams;
         si = _si;
     }
-
-    /// @notice Function for sending native currency to cover OFT transfer
-    function deposit() external payable {}
 
     //  ADMIN FUNCTIONS
-
-    /// @notice Set new adapter params
-    /// @dev only Owner can call the function
-    /// @dev throws error ZeroValue if owner pass empty bytes array
-    /// @param _adapterParams new adapter params
-    function setAdapterParam(
-        bytes calldata _adapterParams
-    ) external override onlyOwner {
-        if (_adapterParams.length == 0) {
-            revert ZeroValue();
-        }
-        adapterParams = _adapterParams;
-    }
-
-    /// @notice Set new SI token address
-    /// @dev only Owner can call the function
-    /// @dev SI token address can't be equal to zero address
-    /// @param _si new address of SI token
-    function setSIToken(address _si) external override onlyOwner {
-        if (_si == address(0)) {
-            revert ZeroAddress();
-        }
-        si = _si;
-    }
 
     /// @notice Set new address of SquidMulticall contract
     /// @dev only Owner can call the function
     /// @dev new address can't be equal to zero address
     /// @param _squidMulticall new address of SquidMulticall contract
-    function setSquidMulticall(address _squidMulticall) external onlyOwner {
+    function setSquidMulticall(address _squidMulticall) external override onlyOwner {
         if (_squidMulticall == address(0)) {
             revert ZeroAddress();
         }
@@ -130,26 +100,6 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         squidRouter = _squidRouter;
     }
 
-    /// @notice Set chain name and address of SquidRouter contract on the chain
-    /// @dev only Owner can call the function
-    /// @dev chainId must be in format 101**
-    /// @dev check layer zero docs
-    /// @dev https://layerzero.gitbook.io/docs/technical-reference/testnet/testnet-addresses
-    /// @param _dstChainId endpoint id (chain Id)
-    /// @param _chainName name of the network
-    /// @param _squidRouter address of SquidRouter on the network
-    function setChainData(
-        uint16 _dstChainId,
-        string calldata _chainName,
-        string calldata _squidRouter
-    ) external override onlyOwner {
-        if (_dstChainId == 0) {
-            revert IncorrectChainId();
-        }
-        chainIdName[_dstChainId] = _chainName;
-        chainIdSquidRouter[_dstChainId] = _squidRouter;
-    }
-
     /// FUNCTIONS FOR CONTRACT CALLS
 
     /// @notice send received SI token to recipient on the source chain
@@ -160,7 +110,8 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     function sendOFTTokenToOwner(
         uint16 _dstChainId,
         bytes32 _toAddress,
-        address _refundAddress
+        address _refundAddress,
+        bytes memory _adapterParams
     ) external payable override onlySquidMulticall {
         uint256 siBalance = IERC20(si).balanceOf(address(this));
         uint256 amount;
@@ -168,7 +119,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             revert NotEnoughBalance();
         }
         amount = siBalance - totalLocked;
-        _sendFromOFT(_dstChainId, _toAddress, _refundAddress, amount);
+        _sendFromOFT(_dstChainId, _toAddress, _refundAddress, amount,_adapterParams);
     }
 
     /// @notice call by SI token to register owner or recipient of the tokens
@@ -195,17 +146,60 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
 
     // USER FUNCTIONS
 
-    /// @notice execute swap of SI token to another toker and
-    /// transfer to destination chain by using SquidRouter SC
+    /// @notice Function for sending native currency to cover OFT transfer
+    /// @param _recipient address of recipient of OFT tokens in future
+    function deposit(address _recipient) external payable {
+        uint256 msgValue = msg.value;
+        nativeBalance[_recipient] += msgValue;
+        totalNativeLocked += msgValue;
+        emit NativeTokenDeposited(_recipient,msgValue);
+    }
+
+    function withdrawNative(uint256 _amount, address payable _recipient) external override{
+        uint256 reservedBalance = nativeBalance[_msgSender()];
+        if(reservedBalance == 0 || _amount > reservedBalance){
+            revert NotEnoughBalance();
+        }
+        if(_recipient == address(0)){
+            revert ZeroAddress();
+        }
+        nativeBalance[_msgSender()] = reservedBalance - _amount;
+        totalNativeLocked -= _amount;
+        (bool isSent,) = _recipient.call{value: _amount}("");
+        if(!isSent){
+            revert NativeTransferFailed();
+        }
+        emit NativeTokenWithdrawn(_recipient,_amount);
+    }
+
+    function withdrawSI(uint256 _amount, address _recipient) external override{
+        uint256 reservedBalance = reservedTokens[_msgSender()];
+        if(reservedBalance == 0 || _amount > reservedBalance){
+            revert NotEnoughBalance();
+        }
+        if(_recipient == address(0)){
+            revert ZeroAddress();
+        }
+        reservedTokens[_msgSender()] = reservedBalance - _amount;
+        totalLocked -= _amount;
+        if(IERC20(si).transfer(_recipient, _amount)){
+            revert TransferFailed();
+        }
+    }
+
+    /// @notice execute swap of SI token to another token and
+    /// transfer to destination chain by using SquidRouter SCs
     /// @param _sqdCallsSourceChain array of Calls which describe instruction for swap
+    /// @param _destinationChain sfsdf
+    /// @param _destinationAddress fsdfsdf
     /// @param _payload payload which describe instruction to execute on destination chain
-    /// @param _dstChainId destination chain id
     /// @param _refundAddress recipient of gas refund
     /// @param _amount amount of SI tokens to swap
     function sellSI(
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
+        string calldata _destinationChain,
+        string calldata _destinationAddress,
         bytes calldata _payload,
-        uint16 _dstChainId,
         address _refundAddress,
         uint256 _amount
     ) external payable override nonReentrant {
@@ -216,36 +210,63 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         if (reservedAmount < _amount) {
             revert NotEnoughBalance();
         }
-        IERC20(si).approve(squidRouter, _amount);
+        if(!IERC20(si).approve(squidRouter, _amount)){
+            revert ApproveFailed();
+        }
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
             si,
             _amount,
             _sqdCallsSourceChain,
             BRIDER_TOKEN_SYMBOL,
-            chainIdName[_dstChainId],
-            chainIdSquidRouter[_dstChainId],
+            _destinationChain,
+            _destinationAddress,
             _payload,
             _refundAddress,
             false
         );
     }
 
+    function getRequiredValueToCoverOFTTransfer(
+        uint16 _dstChainId,
+        bytes32 _toAddress,
+        uint256 _amount,
+        bytes memory _adapterParams
+        ) external view override returns(uint256){
+        uint256 native = _getCrossTransferGasCost(
+            _dstChainId,
+            _toAddress,
+            _amount,
+            _adapterParams
+        );
+        address to = address(uint160(uint256(_toAddress)));
+        uint256 nativeAmount = nativeBalance[to];
+        if(nativeAmount >= native){
+            return 0;
+        }else{
+            return native - nativeAmount;
+        }
+    }
+
     function _sendFromOFT(
         uint16 _dstChainId,
         bytes32 _toAddress,
         address _refundAddress,
-        uint256 _amount
+        uint256 _amount,
+        bytes memory _adapterParams
     ) internal {
+        address to = address(uint160(uint256(_toAddress)));
         uint256 native = _getCrossTransferGasCost(
             _dstChainId,
             _toAddress,
-            _amount
+            _amount,
+            _adapterParams
         );
-        if (address(this).balance < native) {
+        
+        if ((address(this).balance - (totalNativeLocked - nativeBalance[to])) < native) {
             revert NotEnoughBalance();
         }
         IOFTV2.LzCallParams memory params;
-        params.adapterParams = adapterParams;
+        params.adapterParams = _adapterParams;
         params.refundAddress = payable(address(_refundAddress));
         params.zroPaymentAddress = address(0);
         IOFTV2(si).sendFrom{value: native}(
@@ -260,14 +281,15 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     function _getCrossTransferGasCost(
         uint16 _dstChainId,
         bytes32 _toAddress,
-        uint256 amount
+        uint256 _amount,
+        bytes memory _adapterParams
     ) internal view returns (uint256 native) {
         (native, ) = IOFTV2(si).estimateSendFee(
             _dstChainId,
             _toAddress,
-            amount,
+            _amount,
             false,
-            adapterParams
+            _adapterParams
         );
     }
 }

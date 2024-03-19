@@ -6,6 +6,10 @@ import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/o
 interface IStreamerInuRouter is IOFTReceiverV2 {
     /// @dev Emits when the contract receive SI token after cross chain transfer
     event OFTTokensReceived(address indexed recipient, uint256 amount);
+    /// @dev Emits when sender deposited native token;
+    event NativeTokenDeposited(address indexed recipient, uint256 amount);
+    /// @dev Emits when user withdraw native token;
+    event NativeTokenWithdrawn(address indexed recipient, uint256 amount);
     /// @dev Throws if sender isn't SquidMultical contract
     error NotSquidMultical();
     /// @dev Throws if sender isn't SI token
@@ -20,34 +24,43 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     error NotEnoughBalance();
     /// @dev Throws if user has zero SI token balance on the contract
     error ZeroSIBalance();
+    /// @dev Throws if approve of SI token failed
+    error ApproveFailed();
+    /// @dev Throws if transfer of SI token failed
+    error TransferFailed();
+    /// @dev Throws if transfer of naitve token failed
+    error NativeTransferFailed();
 
-    function deposit() external payable;
-
-    function setAdapterParam(bytes calldata _adapterParams) external;
-
-    function setSIToken(address _si) external;
+    function deposit(address _recipient) external payable;
 
     function setSquidMulticall(address _squidMulticall) external;
 
     function setSquidRouter(address _squidRouter) external;
 
-    function setChainData(
-        uint16 _dstChainId,
-        string calldata _chainName,
-        string calldata _squidRouter
-    ) external;
-
     function sendOFTTokenToOwner(
         uint16 _dstChainId,
         bytes32 _toAddress,
-        address _refundAddress
+        address _refundAddress,
+        bytes memory _adapterParams
     ) external payable;
+
+    function withdrawNative(uint256 _amount, address payable _recipient) external;
+
+    function withdrawSI(uint256 _amount, address _recipient) external;
 
     function sellSI(
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
+        string calldata _destinationChain,
+        string calldata _destinationAddress,
         bytes calldata _payload,
-        uint16 _dstChainId,
         address _refundAddress,
         uint256 _amount
     ) external payable;
+
+    function getRequiredValueToCoverOFTTransfer(
+        uint16 _dstChainId,
+        bytes32 _toAddress,
+        uint256 _amount,
+        bytes memory _adapterParams
+        ) external view returns(uint256);
 }
