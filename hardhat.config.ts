@@ -53,6 +53,11 @@ const config: HardhatUserConfig = {
       chainId: 80001,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
+    polygon: {
+      url: `https://polygon-rpc.com/`,
+      chainId: 137,
+      accounts: [`${DEV_PRIVATE_KEY}`],
+    },
   },
   etherscan: {
     apiKey: {
