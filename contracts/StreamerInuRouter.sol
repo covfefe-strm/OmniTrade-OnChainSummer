@@ -5,13 +5,11 @@ import {IOFTV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/in
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import {IPancakeRouter02} from "./dex/pancakeswap/interfaces/IPancakeRouter02.sol";
 import {ISquidRouter} from "./squidrouter/interfaces/ISquidRouter.sol";
 import {IStreamerInuRouter, ISquidMulticall} from "./interfaces/IStreamerInuRouter.sol";
 string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 
-/* _____ _                                    _____             _____             _            
+/*  _____ _                                    _____             _____             _            
   / ____| |                                  |_   _|           |  __ \           | |           
  | (___ | |_ _ __ ___  __ _ _ __ ___   ___ _ __| |  _ __  _   _| |__) |___  _   _| |_ ___ _ __ 
   \___ \| __| '__/ _ \/ _` | '_ ` _ \ / _ \ '__| | | '_ \| | | |  _  // _ \| | | | __/ _ \ '__|
@@ -22,7 +20,6 @@ string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 /// @title StreamerInuRouter
 /// @notice The purpose of the contract send and receive OFT StreamInu token for safe crosschain trading.
 contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
-    
     /// @notice stores amount of SI tokens reserved for sender or recipient
     /// @dev address of sender or recipient => amount of SI token
     mapping(address => uint256) public reservedTokens;
@@ -59,11 +56,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(
-        address _si,
-        address _squidRouter,
-        address _squidMulticall
-    ) {
+    constructor(address _si, address _squidRouter, address _squidMulticall) {
         if (
             _squidMulticall == address(0) ||
             _squidRouter == address(0) ||
@@ -82,7 +75,9 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     /// @dev only Owner can call the function
     /// @dev new address can't be equal to zero address
     /// @param _squidMulticall new address of SquidMulticall contract
-    function setSquidMulticall(address _squidMulticall) external override onlyOwner {
+    function setSquidMulticall(
+        address _squidMulticall
+    ) external override onlyOwner {
         if (_squidMulticall == address(0)) {
             revert ZeroAddress();
         }
@@ -119,7 +114,13 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             revert NotEnoughBalance();
         }
         amount = siBalance - totalLocked;
-        _sendFromOFT(_dstChainId, _toAddress, _refundAddress, amount,_adapterParams);
+        _sendFromOFT(
+            _dstChainId,
+            _toAddress,
+            _refundAddress,
+            amount,
+            _adapterParams
+        );
     }
 
     /// @notice call by SI token to register owner or recipient of the tokens
@@ -152,37 +153,40 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         uint256 msgValue = msg.value;
         nativeBalance[_recipient] += msgValue;
         totalNativeLocked += msgValue;
-        emit NativeTokenDeposited(_recipient,msgValue);
+        emit NativeTokenDeposited(_recipient, msgValue);
     }
 
-    function withdrawNative(uint256 _amount, address payable _recipient) external override{
+    function withdrawNative(
+        uint256 _amount,
+        address payable _recipient
+    ) external override {
         uint256 reservedBalance = nativeBalance[_msgSender()];
-        if(reservedBalance == 0 || _amount > reservedBalance){
+        if (reservedBalance == 0 || _amount > reservedBalance) {
             revert NotEnoughBalance();
         }
-        if(_recipient == address(0)){
+        if (_recipient == address(0)) {
             revert ZeroAddress();
         }
         nativeBalance[_msgSender()] = reservedBalance - _amount;
         totalNativeLocked -= _amount;
-        (bool isSent,) = _recipient.call{value: _amount}("");
-        if(!isSent){
+        (bool isSent, ) = _recipient.call{value: _amount}("");
+        if (!isSent) {
             revert NativeTransferFailed();
         }
-        emit NativeTokenWithdrawn(_recipient,_amount);
+        emit NativeTokenWithdrawn(_recipient, _amount);
     }
 
-    function withdrawSI(uint256 _amount, address _recipient) external override{
+    function withdrawSI(uint256 _amount, address _recipient) external override {
         uint256 reservedBalance = reservedTokens[_msgSender()];
-        if(reservedBalance == 0 || _amount > reservedBalance){
+        if (reservedBalance == 0 || _amount > reservedBalance) {
             revert NotEnoughBalance();
         }
-        if(_recipient == address(0)){
+        if (_recipient == address(0)) {
             revert ZeroAddress();
         }
         reservedTokens[_msgSender()] = reservedBalance - _amount;
         totalLocked -= _amount;
-        if(IERC20(si).transfer(_recipient, _amount)){
+        if (!IERC20(si).transfer(_recipient, _amount)) {
             revert TransferFailed();
         }
     }
@@ -210,7 +214,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         if (reservedAmount < _amount) {
             revert NotEnoughBalance();
         }
-        if(!IERC20(si).approve(squidRouter, _amount)){
+        if (!IERC20(si).approve(squidRouter, _amount)) {
             revert ApproveFailed();
         }
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
@@ -231,7 +235,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         bytes32 _toAddress,
         uint256 _amount,
         bytes memory _adapterParams
-        ) external view override returns(uint256){
+    ) external view override returns (uint256) {
         uint256 native = _getCrossTransferGasCost(
             _dstChainId,
             _toAddress,
@@ -240,9 +244,9 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         );
         address to = address(uint160(uint256(_toAddress)));
         uint256 nativeAmount = nativeBalance[to];
-        if(nativeAmount >= native){
+        if (nativeAmount >= native) {
             return 0;
-        }else{
+        } else {
             return native - nativeAmount;
         }
     }
@@ -261,8 +265,11 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             _amount,
             _adapterParams
         );
-        
-        if ((address(this).balance - (totalNativeLocked - nativeBalance[to])) < native) {
+
+        if (
+            (address(this).balance - (totalNativeLocked - nativeBalance[to])) <
+            native
+        ) {
             revert NotEnoughBalance();
         }
         IOFTV2.LzCallParams memory params;
