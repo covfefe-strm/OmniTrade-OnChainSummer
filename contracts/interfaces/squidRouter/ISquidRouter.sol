@@ -2,7 +2,7 @@
 pragma solidity 0.8.23;
 
 import { ISquidMulticall } from "./ISquidMulticall.sol";
-import { IPermit2 } from "../interfaces/uniswap/IPermit2.sol";
+import { IPermit2 } from "./uniswap/IPermit2.sol";
 
 /// @title SquidRouter
 /// @notice Main entry point of the protocol. It mainly provides endpoints to interact safely

@@ -5,7 +5,7 @@ import {IOFTV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/in
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {ISquidRouter} from "./squidrouter/interfaces/ISquidRouter.sol";
+import {ISquidRouter} from "./interfaces/squidRouter/ISquidRouter.sol";
 import {IStreamerInuRouter, ISquidMulticall} from "./interfaces/IStreamerInuRouter.sol";
 string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 
@@ -214,9 +214,11 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         if (reservedAmount < _amount) {
             revert NotEnoughBalance();
         }
+
         if (!IERC20(si).approve(squidRouter, _amount)) {
             revert ApproveFailed();
         }
+
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
             si,
             _amount,

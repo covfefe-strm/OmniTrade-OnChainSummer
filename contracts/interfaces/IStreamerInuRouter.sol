@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-import {ISquidMulticall} from "../squidrouter/interfaces/ISquidMulticall.sol";
+import {ISquidMulticall} from "./squidRouter/ISquidMulticall.sol";
 import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/interfaces/IOFTReceiverV2.sol";
 
 interface IStreamerInuRouter is IOFTReceiverV2 {
