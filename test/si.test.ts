@@ -14,14 +14,14 @@ let siFactory: StreamerInuToken__factory;
 let si: StreamerInuToken;
 let owner: SignerWithAddress;
 let user1: SignerWithAddress;
-let multisignatureWallet: SignerWithAddress;
+let multisigWallet: SignerWithAddress;
 let startSnapshot: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
 let shareDecimal = 8;
 describe("StreamerInuToken", async () => {
   before(async () => {
-    [owner, user1, multisignatureWallet] = await ethers.getSigners();
+    [owner, user1, multisigWallet] = await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
       "StreamerInuToken",
     )) as StreamerInuToken__factory;
@@ -37,12 +37,10 @@ describe("StreamerInuToken", async () => {
         symbol,
         shareDecimal,
         owner.address,
-        multisignatureWallet.address,
+        multisigWallet.address,
       );
       console.log("getChainId", await si.getChainId());
-      expect(await si.balanceOf(multisignatureWallet.address)).to.be.equal(
-        ethers.parseUnits("15", 26),
-      );
+      expect(await si.balanceOf(multisigWallet.address)).to.be.equal(0);
     });
   });
 });

@@ -2,7 +2,7 @@
 // https://github.com/sc-forks/solidity-coverage/blob/master/README.md
 // https://github.com/sc-forks/solidity-coverage/blob/master/docs/faq.md#running-out-of-stack
 module.exports = {
-  skipFiles: ["test/", "mock/"],
+  skipFiles: ["test/", "mock/", "dex/", "squidrouter/"],
   configureYulOptimizer: true,
   solcOptimizerDetails: {
     peephole: false,
