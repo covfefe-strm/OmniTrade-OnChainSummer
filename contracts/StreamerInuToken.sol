@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
-import "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {OFTV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
+import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IStreamerInuToken} from "./interfaces/IStreamerInuToken.sol";
-
 /// @title StreamerInu OFT token
 contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev Stores ID of Polygon network
@@ -31,10 +30,15 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         uint8 _sharedDecimals,
         address _lzEndpoint,
         address _recipient,
+        address _taxRecipient,
         address _uniswapRouter,
         address _usdc
     ) OFTV2(_name, _symbol, _sharedDecimals, _lzEndpoint) {
-        if (_uniswapRouter == address(0) || _usdc == address(0)) {
+        if (
+            _uniswapRouter == address(0) ||
+            _usdc == address(0) ||
+            _taxRecipient == address(0)
+        ) {
             revert ZeroAddress();
         }
         if (getChainId() == MINT_CHAIN_ID) {
@@ -43,6 +47,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
             }
             _mint(_recipient, 1_500_000_000 ether);
         }
+        taxRecipient = _taxRecipient;
         uniswapRouter = _uniswapRouter;
         usdc = _usdc;
     }
@@ -51,7 +56,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev only owner can call the function
     /// tax percent must be in range [0% - 5%]
     /// @param _taxPercent percent of tax
-    function setPercent(uint256 _taxPercent) external onlyOwner {
+    function setTaxPercent(uint256 _taxPercent) external onlyOwner {
         if (_taxPercent > MAX_TAX_PERCENT) {
             revert WrongTaxPercent();
         }
@@ -88,6 +93,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev only owner can call the function
     function getChainId() public view returns (uint256) {
         uint256 chainId;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             chainId := chainid()
         }
@@ -100,35 +106,27 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         uint256 amount
     ) internal override {
         if (from == siUsdcPair) {
-            _transferWithTax(from, to, amount);
+            uint256 tax = _getTaxAmount(amount);
+            if (tax != 0) {
+                super._transfer(from, address(this), tax);
+                _approve(address(this), uniswapRouter, tax);
+                ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+                    .ExactInputSingleParams(
+                        address(this),
+                        usdc,
+                        pairFee,
+                        taxRecipient,
+                        block.timestamp + 60,
+                        tax,
+                        0,
+                        0
+                    );
+                ISwapRouter(uniswapRouter).exactInputSingle(params);
+            }
+            super._transfer(from, to, amount - tax);
         } else {
             super._transfer(from, to, amount);
         }
-    }
-
-    function _transferWithTax(
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
-        uint256 tax = _getTaxAmount(amount);
-        if (tax != 0) {
-            _transfer(from, address(this), tax);
-            _approve(address(this), uniswapRouter, tax);
-            ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
-                .ExactInputSingleParams(
-                    address(this),
-                    usdc,
-                    pairFee,
-                    taxRecipient,
-                    block.timestamp + 60,
-                    tax,
-                    0,
-                    0
-                );
-            ISwapRouter(uniswapRouter).exactInputSingle(params);
-        }
-        _transfer(from, to, amount - tax);
     }
 
     function _getTaxAmount(uint256 _amountIn) internal view returns (uint256) {

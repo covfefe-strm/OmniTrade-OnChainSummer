@@ -13,7 +13,7 @@ interface IStreamerInuToken {
     error ZeroValue();
     /// @dev Throws if owner pass tax percent which is greater then 5%
     error WrongTaxPercent();
-    function setPercent(uint256 _taxPercent) external;
+    function setTaxPercent(uint256 _taxPercent) external;
     function setPair(address _pairAddress, uint24 _fee) external;
     function setTaxRecipient(address _newRecipient) external;
 }

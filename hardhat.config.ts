@@ -36,6 +36,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       // VotingEscrow too big, that's why we need to use the property
       allowUnlimitedContractSize: true,
+      // for test purposes
+      chainId: 137,
     },
     coverage: {
       gas: 0xfffffffffff,

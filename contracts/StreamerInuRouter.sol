@@ -133,8 +133,8 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         uint16 /*_srcChainId*/,
         bytes calldata /* _srcAddress */,
         uint64 /* _nonce */,
-        bytes32 _from,
-        uint _amount,
+        bytes32 _from, 
+        uint _amount, // solhint-disable-line explicit-types
         bytes calldata _payload
     ) external override onlySIToken {
         address recipient = _payload.length < 32
