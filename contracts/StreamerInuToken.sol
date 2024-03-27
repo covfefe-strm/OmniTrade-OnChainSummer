@@ -2,8 +2,9 @@
 pragma solidity 0.8.23;
 
 import {OFTV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
-import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IStreamerInuToken} from "./interfaces/IStreamerInuToken.sol";
+import {IStreamerInuVault} from "./interfaces/IStreamerInuVault.sol";
 /// @title StreamerInu OFT token
 contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev Stores ID of Polygon network
@@ -14,42 +15,25 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     uint256 public constant MAX_TAX_PERCENT = 5 * 10 ** 16;
     /// @dev Stores address of Uniswap V3 Pool of SI and USDC tokens;
     address public siUsdcPair;
-    /// @dev Stores fee of Uniswap V3 Pool of SI and USDC tokens;
-    uint24 public pairFee;
     /// @dev Stores current tax percent, can be in range from 0% to 5%
     uint256 public taxPercent;
-    /// @dev Stores address of taxes recipient, should me multisignature wallet
-    address public taxRecipient;
-    /// @dev address of Uniswap SwapRouter V3;
-    address public uniswapRouter;
-    /// @dev address of USDC token;
-    address public usdc;
+    /// @dev Stores address of taxes recipient, should me StreamerInuVault
+    address public siVault;
     constructor(
         string memory _name,
         string memory _symbol,
         uint8 _sharedDecimals,
         address _lzEndpoint,
         address _recipient,
-        address _taxRecipient,
-        address _uniswapRouter,
-        address _usdc
+        address _siVault
     ) OFTV2(_name, _symbol, _sharedDecimals, _lzEndpoint) {
-        if (
-            _uniswapRouter == address(0) ||
-            _usdc == address(0) ||
-            _taxRecipient == address(0)
-        ) {
-            revert ZeroAddress();
-        }
         if (getChainId() == MINT_CHAIN_ID) {
             if (_recipient == address(0)) {
                 revert ZeroAddress();
             }
             _mint(_recipient, 1_500_000_000 ether);
         }
-        taxRecipient = _taxRecipient;
-        uniswapRouter = _uniswapRouter;
-        usdc = _usdc;
+        _setSiVault(_siVault);
     }
 
     /// @notice Set new tax percent
@@ -66,31 +50,24 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @notice Set data of SI/USDC pair
     /// @dev only owner can call the function
     /// @param _pairAddress address of SI/USDC pair
-    /// @param _fee pair's fee
-    function setPair(address _pairAddress, uint24 _fee) external onlyOwner {
+    function setPair(address _pairAddress) external onlyOwner {
         if (_pairAddress == address(0)) {
             revert ZeroAddress();
         }
-        if (_fee == 0) {
-            revert ZeroValue();
+        if(siUsdcPair != address(0)){
+            revert PairInitialized();
         }
         siUsdcPair = _pairAddress;
-        pairFee = _fee;
-        emit SetPair(_pairAddress, _fee);
+        emit SetPair(_pairAddress);
     }
-    /// @notice Set new address of tax recipient
+    /// @notice Set new address of SiVault
     /// @dev only owner can call the function
-    /// @param _newRecipient new address of tax recipient
-    function setTaxRecipient(address _newRecipient) external onlyOwner {
-        if (_newRecipient == address(0)) {
-            revert ZeroAddress();
-        }
-        taxRecipient = _newRecipient;
-        emit SetTaxRecipient(_newRecipient);
+    /// @param _siVault new address of SiVault
+    function setTaxRecipient(address _siVault) external onlyOwner {
+        _setSiVault(_siVault);
     }
 
-    /// @notice Set new address of tax recipient
-    /// @dev only owner can call the function
+    /// @notice Return chaind id of current network
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         // solhint-disable-next-line no-inline-assembly
@@ -108,25 +85,24 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         if (from == siUsdcPair) {
             uint256 tax = _getTaxAmount(amount);
             if (tax != 0) {
-                super._transfer(from, address(this), tax);
-                _approve(address(this), uniswapRouter, tax);
-                ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
-                    .ExactInputSingleParams(
-                        address(this),
-                        usdc,
-                        pairFee,
-                        taxRecipient,
-                        block.timestamp + 60,
-                        tax,
-                        0,
-                        0
-                    );
-                ISwapRouter(uniswapRouter).exactInputSingle(params);
+                super._transfer(from, siVault, tax);
+                IStreamerInuVault(siVault).receiveTax(tax);
             }
             super._transfer(from, to, amount - tax);
         } else {
             super._transfer(from, to, amount);
         }
+    }
+
+    function _setSiVault(address _siVault) internal{
+        if (_siVault == address(0)) {
+            revert ZeroAddress();
+        }
+        if(!IERC165(_siVault).supportsInterface(type(IStreamerInuVault).interfaceId)){
+            revert WrongSiVault();
+        }
+        siVault = _siVault;
+        emit SetSiVault(_siVault);
     }
 
     function _getTaxAmount(uint256 _amountIn) internal view returns (uint256) {
