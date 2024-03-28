@@ -1,4 +1,3 @@
-import * as dotenv from "dotenv";
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
 import {
@@ -6,6 +5,8 @@ import {
   StreamerInuToken__factory,
   OftMock,
   OftMock__factory,
+  StreamerInuVault,
+  StreamerInuVault__factory,
   SwapRouterMock,
   SwapRouterMock__factory,
 } from "../typechain-types";
@@ -14,8 +15,11 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
+import { errors } from "./testHelpers/constants";
 let siFactory: StreamerInuToken__factory;
 let si: StreamerInuToken;
+let vaultFactory: StreamerInuVault__factory;
+let siVault: StreamerInuVault;
 let swapRouterFactory: SwapRouterMock__factory;
 let swapRouter: SwapRouterMock;
 let erc20Factory: OftMock__factory;
@@ -36,6 +40,9 @@ describe("StreamerInuToken", async () => {
     siFactory = (await ethers.getContractFactory(
       "StreamerInuToken",
     )) as StreamerInuToken__factory;
+    vaultFactory = (await ethers.getContractFactory(
+      "StreamerInuVault",
+    )) as StreamerInuVault__factory;
     swapRouterFactory = (await ethers.getContractFactory(
       "SwapRouterMock",
     )) as SwapRouterMock__factory;
@@ -48,25 +55,98 @@ describe("StreamerInuToken", async () => {
       name,
       symbol,
       shareDecimal,
-      owner.address,
-      multisigWallet.address,
-      taxRecipient.address,
-      await swapRouter.getAddress(),
-      await usdc.getAddress(),
+      owner.address, //_lzEndpoint
+      multisigWallet.address, //_recipient
     );
+    siVault = await vaultFactory.deploy(
+      await si.getAddress(),
+      await usdc.getAddress(),
+      100,
+      await swapRouter.getAddress(),
+    );
+    await si.setSiVault(await siVault.getAddress());
+    // await si.setPair(pair.address);
     startSnapshot = await takeSnapshot();
   });
   afterEach(async () => {
     await startSnapshot.restore();
   });
+  describe("setTaxPercent", async () => {
+    it("Must revert if sender isn't owner", async () => {
+      await expect(
+        si.connect(user1).setTaxPercent(ethers.parseEther("0")),
+      ).to.be.revertedWith(errors.OWNABLE_ERROR);
+    });
+    it("Must revert if tax percent is incorrect", async () => {
+      await expect(
+        si.setTaxPercent(ethers.parseEther("1")),
+      ).to.be.revertedWithCustomError(si, "WrongTaxPercent");
+    });
+    it("Must set new tax percent correctly", async () => {
+      let percent = ethers.parseEther("0.05");
+      let tx = await si.setTaxPercent(percent);
+      expect(await si.taxPercent()).to.be.equal(percent);
+      expect(tx).to.be.emit(si, "SetTaxPercent").withArgs(percent);
+    });
+  });
+  describe("setPair", async () => {
+    it("Must revert if sender isn't owner", async () => {
+      await expect(si.connect(user1).setPair(pair.address)).to.be.revertedWith(
+        errors.OWNABLE_ERROR,
+      );
+    });
+    it("Must revert if passed address if zero address", async () => {
+      await expect(
+        si.setPair(ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(si, "ZeroAddress");
+    });
+    it("Must revert if SI/USDC pair is already set", async () => {
+      await si.setPair(pair.address);
+      await expect(si.setPair(pair.address)).to.be.revertedWithCustomError(
+        si,
+        "PairInitialized",
+      );
+    });
+    it("Must set address of SI/USDC pair correctly", async () => {
+      let tx = await si.setPair(pair.address);
+      expect(await si.siUsdcPair()).to.be.equal(pair.address);
+      expect(tx).to.be.emit(si, "SetPair").withArgs(pair.address);
+    });
+  });
+  describe("setSiVault", async () => {
+    it("Must revert if sender isn't owner", async () => {
+      await expect(
+        si.connect(user1).setSiVault(pair.address),
+      ).to.be.revertedWith(errors.OWNABLE_ERROR);
+    });
+    it("Must revert if passed address if zero address", async () => {
+      await expect(
+        si.setSiVault(ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(si, "ZeroAddress");
+    });
+    it("Must revert if passed address isn't supported IERC165", async () => {
+      await expect(si.setSiVault(await usdc.getAddress())).to.be.reverted;
+    });
+    it("Must set address of StreamerInuVault correctly", async () => {
+      let tx = await si.setSiVault(await siVault.getAddress());
+      expect(await si.siVault()).to.be.equal(await siVault.getAddress());
+      expect(tx)
+        .to.be.emit(si, "SetSiVault")
+        .withArgs(await siVault.getAddress());
+    });
+  });
   describe("transfer", async () => {
-    it("must calculate taxes correctly", async () => {
+    it("must calculate taxes correctly (5%)", async () => {
       let eth1 = await ethers.parseEther("1");
-      await si.setPair(pair.address, 100);
+      await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
       await si.setTaxPercent(ethers.parseEther("0.05"));
       let tx = await si.connect(pair).transfer(user1.address, eth1);
-      expect(await si.balanceOf(taxRecipient.address)).to.be.closeTo(
+      expect(await si.balanceOf(await siVault.getAddress())).to.be.closeTo(
+        ethers.parseEther("0.05"),
+        ethers.parseEther("0.0000001"),
+      );
+      expect(await siVault.lastSiBalance()).to.be.closeTo(
         ethers.parseEther("0.05"),
         ethers.parseEther("0.0000001"),
       );
@@ -77,20 +157,24 @@ describe("StreamerInuToken", async () => {
     });
     it("must execute pass without taxes (with 0%)", async () => {
       let eth1 = await ethers.parseEther("1");
-      await si.setPair(pair.address, 100);
+      await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
       let tx = await si.connect(pair).transfer(user1.address, eth1);
-      expect(await si.balanceOf(taxRecipient.address)).to.be.equal(0);
+      expect(await si.balanceOf(await siVault.getAddress())).to.be.equal(0);
       expect(await si.balanceOf(user1.address)).to.be.equal(eth1);
+      expect(await siVault.lastSiBalance()).to.be.equal(0);
     });
-    it("must execute pass with tax percent 0.001", async () => {
+    it("must execute pass with tax percent 0.1%", async () => {
       let eth1 = await ethers.parseEther("1");
-      console.log("balance", await si.balanceOf(owner.address));
-      await si.setPair(pair.address, 100);
+      await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
       await si.setTaxPercent(ethers.parseEther("0.001"));
       let tx = await si.connect(pair).transfer(user1.address, eth1);
-      expect(await si.balanceOf(taxRecipient.address)).to.be.closeTo(
+      expect(await si.balanceOf(await siVault.getAddress())).to.be.closeTo(
+        ethers.parseEther("0.001"),
+        ethers.parseEther("0.0000001"),
+      );
+      expect(await siVault.lastSiBalance()).to.be.closeTo(
         ethers.parseEther("0.001"),
         ethers.parseEther("0.0000001"),
       );

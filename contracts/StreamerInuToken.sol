@@ -25,8 +25,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         string memory _symbol,
         uint8 _sharedDecimals,
         address _lzEndpoint,
-        address _recipient,
-        address _siVault
+        address _recipient
     ) OFTV2(_name, _symbol, _sharedDecimals, _lzEndpoint) {
         if (getChainId() == MINT_CHAIN_ID) {
             if (_recipient == address(0)) {
@@ -34,7 +33,6 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
             }
             _mint(_recipient, 1_500_000_000 ether);
         }
-        _setSiVault(_siVault);
     }
 
     /// @notice Set new tax percent
@@ -61,7 +59,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         siUsdcPair = _pairAddress;
         emit SetPair(_pairAddress);
     }
-    
+
     /// @notice Set new address of StreamerInuVault
     /// @dev only owner can call the function
     /// if passed address doesn't support 
@@ -86,7 +84,11 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         address to,
         uint256 amount
     ) internal override {
-        if (from == siUsdcPair) {
+        // the if statement prevent blocking of transfer function
+        // if some of the params haven't set
+        if(siUsdcPair == address(0) || siVault == address(0)){
+            super._transfer(from, to, amount);
+        } else if (from == siUsdcPair) {
             uint256 tax = _getTaxAmount(amount);
             if (tax != 0) {
                 super._transfer(from, siVault, tax);
