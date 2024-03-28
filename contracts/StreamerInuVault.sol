@@ -7,10 +7,15 @@ import {IStreamerInuVault} from "./interfaces/IStreamerInuVault.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 /// @title StreamerInu Vault
 contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
+    /// @dev Stores SI balance which describe reserved tokens for swap
     uint256 public lastSiBalance;
+    /// @dev Stores address of SI token
     address public si;
+    /// @dev Stores address of USDC token
     address public usdc;
+    /// @dev Stores fee of SI/USDC pool
     uint24 public siUsdcPairFee;
+    /// @dev Stores address of Uniswap Swap Router V3
     ISwapRouter public swapRouterV3;
 
     modifier onlySIToken() {
@@ -35,12 +40,21 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         swapRouterV3 = ISwapRouter(_swapRouter);
         siUsdcPairFee = _fee;
     }
-
+    /// @notice Update amount of reserved SI tokens for swap
+    /// @dev only SI token can call the function
+    /// @param _amount amount of received SI tokens
     function receiveTax(uint256 _amount) external onlySIToken {
         lastSiBalance += _amount;
         emit UpdatedTaxAmount(_amount);
     }
 
+    /// @notice Swap reserved SI tokens to USDC and transfer them to recipient
+    /// @dev only owner can call the function
+    /// @param _amount amount of SI tokens to swap
+    /// 0 - all available SI tokens
+    /// if amount is greater then available amount, revert with error "NotEnoughBalance"
+    /// @param _recipient address of USDC recipient
+    /// @param _amountOutMin minimum amount of USDC tokens after swap 
     function sellSi(
         uint256 _amount,
         address _recipient,
@@ -68,6 +82,13 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         lastSiBalance-=_amount;
     }
 
+    /// @notice Admin function in case then some one transfer ERC20 token to the contract
+    /// @dev only owner can call the function
+    /// if _token equals to SI token, makes check for reservedAmount and current balance
+    /// if _amount > currentBalance - reservedTokens, then revert with error "NotEnoughBalance"
+    /// @param _token address of token to withdraw
+    /// @param _recipient address of tokens recipient
+    /// @param _amount amount to withdraw
     function withdrawUnexpectedTokens(address _token,address _recipient, uint256 _amount) external onlyOwner(){
         if(_token == address(0) || _recipient == address(0)){
             revert ZeroAddress();
@@ -84,7 +105,8 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         }
         token.transfer(_recipient, _amount);
     }
-
+    
+    /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
         return interfaceId == type(IERC165).interfaceId || interfaceId == type(IStreamerInuVault).interfaceId;
     }

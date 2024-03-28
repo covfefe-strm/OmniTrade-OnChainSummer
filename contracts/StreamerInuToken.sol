@@ -17,7 +17,8 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     address public siUsdcPair;
     /// @dev Stores current tax percent, can be in range from 0% to 5%
     uint256 public taxPercent;
-    /// @dev Stores address of taxes recipient, should me StreamerInuVault
+    /// @dev Stores address of taxes recipient SC, should be StreamerInuVault
+    /// and implement IStreamerInuVault interface
     address public siVault;
     constructor(
         string memory _name,
@@ -49,7 +50,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     }
     /// @notice Set data of SI/USDC pair
     /// @dev only owner can call the function
-    /// @param _pairAddress address of SI/USDC pair
+    /// @param _pairAddress address of SI/USDC pair of Uniswap V3
     function setPair(address _pairAddress) external onlyOwner {
         if (_pairAddress == address(0)) {
             revert ZeroAddress();
@@ -60,10 +61,13 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         siUsdcPair = _pairAddress;
         emit SetPair(_pairAddress);
     }
-    /// @notice Set new address of SiVault
+    
+    /// @notice Set new address of StreamerInuVault
     /// @dev only owner can call the function
+    /// if passed address doesn't support 
+    /// IStreamerInuVault interface, then revert
     /// @param _siVault new address of SiVault
-    function setTaxRecipient(address _siVault) external onlyOwner {
+    function setSiVault(address _siVault) external onlyOwner {
         _setSiVault(_siVault);
     }
 

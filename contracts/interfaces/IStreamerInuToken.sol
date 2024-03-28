@@ -13,9 +13,11 @@ interface IStreamerInuToken {
     error ZeroValue();
     /// @dev Throws if owner pass tax percent which is greater then 5%
     error WrongTaxPercent();
+    /// @dev Throws if passed address doesn't support IStreamerInuVault interface
     error WrongSiVault();
+    /// @dev Throws if owner try to set SI/USDC pair second time
     error PairInitialized();
     function setTaxPercent(uint256 _taxPercent) external;
     function setPair(address _pairAddress) external;
-    function setTaxRecipient(address _newRecipient) external;
+    function setSiVault(address _siVault) external;
 }
