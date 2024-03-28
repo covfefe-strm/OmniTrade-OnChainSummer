@@ -12,7 +12,7 @@ dotenv.config();
 const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
   ? process.env.DEV_PRIVATE_KEY
   : "0000000000000000000000000000000000000000000000000000000000000000";
-const { BSCSCAN_KEY, MUMBAISCAN_KEY } = process.env;
+const { BSCSCAN_KEY, MUMBAISCAN_KEY, INFURA_API_KEY } = process.env;
 
 const config: HardhatUserConfig = {
   // typechain: {
@@ -38,6 +38,10 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       // for test purposes
       chainId: 137,
+      forking: {
+        url: `https://polygon-mumbai.infura.io/v3/${INFURA_API_KEY}`,
+        blockNumber: 47582096,
+      },
     },
     coverage: {
       gas: 0xfffffffffff,
