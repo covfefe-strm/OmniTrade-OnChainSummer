@@ -41,6 +41,7 @@ let usdc: OftMock;
 let owner: SignerWithAddress;
 let user1: SignerWithAddress;
 let taxRecipient: SignerWithAddress;
+let originalState: SnapshotRestorer;
 let startSnapshot: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
@@ -50,8 +51,9 @@ let QUOTER = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
 let FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 let POSITION_MANAGER = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
 let pool: any;
-describe("StreamerInuVault", async () => {
+describe("UniswapTaxTest", async () => {
   before(async () => {
+    originalState = await takeSnapshot();
     [owner, user1, taxRecipient] = await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
       "StreamerInuToken",
@@ -135,6 +137,9 @@ describe("StreamerInuVault", async () => {
   });
   afterEach(async () => {
     await startSnapshot.restore();
+  });
+  after(async () => {
+    await originalState.restore();
   });
   describe("swap tax", async () => {
     it("Must transfer tax to siVault contract", async () => {

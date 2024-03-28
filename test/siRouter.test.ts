@@ -29,10 +29,12 @@ let owner: SignerWithAddress;
 let user1: SignerWithAddress;
 let squidMulticall: SignerWithAddress;
 let startSnapshot: SnapshotRestorer;
+let originalState: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
 describe("StreamerInuRouter", async () => {
   before(async () => {
+    originalState = await takeSnapshot();
     [owner, user1, squidMulticall] = await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
       "OftMock",
@@ -51,6 +53,9 @@ describe("StreamerInuRouter", async () => {
       squidMulticall.address,
     );
     startSnapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await originalState.restore();
   });
   describe("deployment", async () => {
     it("must deploy correctly", async () => {

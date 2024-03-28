@@ -30,11 +30,13 @@ let multisigWallet: SignerWithAddress;
 let pair: SignerWithAddress;
 let taxRecipient: SignerWithAddress;
 let startSnapshot: SnapshotRestorer;
+let originalState: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
 let shareDecimal = 8;
 describe("StreamerInuToken", async () => {
   before(async () => {
+    originalState = await takeSnapshot();
     [owner, user1, multisigWallet, pair, taxRecipient] =
       await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
@@ -70,6 +72,9 @@ describe("StreamerInuToken", async () => {
   });
   afterEach(async () => {
     await startSnapshot.restore();
+  });
+  after(async () => {
+    await originalState.restore();
   });
   describe("setTaxPercent", async () => {
     it("Must revert if sender isn't owner", async () => {

@@ -29,12 +29,14 @@ let user1: SignerWithAddress;
 let multisigWallet: SignerWithAddress;
 let pair: SignerWithAddress;
 let taxRecipient: SignerWithAddress;
+let originalState: SnapshotRestorer;
 let startSnapshot: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
 let shareDecimal = 8;
 describe("StreamerInuVault", async () => {
   before(async () => {
+    originalState = await takeSnapshot();
     [owner, user1, multisigWallet, pair, taxRecipient] =
       await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
@@ -74,6 +76,9 @@ describe("StreamerInuVault", async () => {
   });
   afterEach(async () => {
     await startSnapshot.restore();
+  });
+  after(async () => {
+    await originalState.restore();
   });
   describe("receiveTax", async () => {
     it("Must revert if sender isn't SI token", async () => {
