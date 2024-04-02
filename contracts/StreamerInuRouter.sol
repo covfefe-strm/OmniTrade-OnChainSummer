@@ -133,7 +133,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         uint16 /*_srcChainId*/,
         bytes calldata /* _srcAddress */,
         uint64 /* _nonce */,
-        bytes32 _from, 
+        bytes32 _from,
         uint _amount, // solhint-disable-line explicit-types
         bytes calldata _payload
     ) external override onlySIToken {
@@ -169,11 +169,11 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
         nativeBalance[_msgSender()] = reservedBalance - _amount;
         totalNativeLocked -= _amount;
+        emit NativeTokenWithdrawn(_recipient, _amount);
         (bool isSent, ) = _recipient.call{value: _amount}("");
         if (!isSent) {
             revert NativeTransferFailed();
         }
-        emit NativeTokenWithdrawn(_recipient, _amount);
     }
 
     function withdrawSI(uint256 _amount, address _recipient) external override {
