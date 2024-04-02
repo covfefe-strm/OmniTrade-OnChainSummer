@@ -218,7 +218,7 @@ async function main() {
   ]);
   const call2 = [0n, swapRouter02Mumbai, 0n, call2data, "0x"];
   /* 
-    CALL#3 transfer remainder of SI token to SwapRouter
+    CALL#3 transfer remainder of STRM token to SwapRouter
   */
   const call3data = InterfaceOFTToken.encodeFunctionData("transfer", [
     swapRouter02Mumbai,
@@ -231,7 +231,7 @@ async function main() {
   const call3 = [1n, aUSDC_Mumbai, 0n, call3data, call3payload];
   /* 
     CALL#4
-    after we get MATIC, we can swap remainder of aUSDC tokens to SI and transfer them to SIRouter SC
+    after we get MATIC, we can swap remainder of aUSDC tokens to STRM and transfer them to SIRouter SC
     We need to call function exactInputSingle
     One of parameters is encoded swap path, you can check example of the creation vai link below
     https://ethereum.stackexchange.com/questions/142406/uniswap-encode-path-in-typescript

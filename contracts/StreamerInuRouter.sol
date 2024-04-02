@@ -20,20 +20,20 @@ string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 /// @title StreamerInuRouter
 /// @notice The purpose of the contract send and receive OFT StreamInu token for safe crosschain trading.
 contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
-    /// @notice stores amount of SI tokens reserved for sender or recipient
-    /// @dev address of sender or recipient => amount of SI token
+    /// @notice stores amount of STRM tokens reserved for sender or recipient
+    /// @dev address of sender or recipient => amount of STRM token
     mapping(address => uint256) public reservedTokens;
     /// @notice stores amount of reserved native tokens which will be used to cover OFT transfer
     /// @dev address of sender or recipient => amount of researved native tokens
     mapping(address => uint256) public nativeBalance;
-    /// @notice stores total amount of reserved SI tokens
+    /// @notice stores total amount of reserved STRM tokens
     /// @return total amount of reserved tokens
     uint256 public totalLocked;
     /// @notice stores total amount of reserved native tokens
     /// @return total amount of reserved tokens
     uint256 public totalNativeLocked;
-    /// @notice stores address of SI token
-    /// @return address of SI token
+    /// @notice stores address of STRM token
+    /// @return address of STRM token
     address public si;
     /// @notice stores address of SquidRouter contract
     /// @return address of SquidRouter token
@@ -97,7 +97,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
 
     /// FUNCTIONS FOR CONTRACT CALLS
 
-    /// @notice send received SI token to recipient on the source chain
+    /// @notice send received STRM token to recipient on the source chain
     /// @dev only SquidMulticall can call the function
     /// @param _dstChainId endpoint id (chain Id)
     /// @param _toAddress address of tokens recipient
@@ -123,8 +123,8 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         );
     }
 
-    /// @notice call by SI token to register owner or recipient of the tokens
-    /// @dev only SI token can call the function
+    /// @notice call by STRM token to register owner or recipient of the tokens
+    /// @dev only STRM token can call the function
     /// @param _from sender of the tokens
     /// @param _amount amount of sended tokens
     /// @param _payload encoded address of recipient of the tokens
@@ -191,14 +191,14 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice execute swap of SI token to another token and
+    /// @notice execute swap of STRM token to another token and
     /// transfer to destination chain by using SquidRouter SCs
     /// @param _sqdCallsSourceChain array of Calls which describe instruction for swap
     /// @param _destinationChain sfsdf
     /// @param _destinationAddress fsdfsdf
     /// @param _payload payload which describe instruction to execute on destination chain
     /// @param _refundAddress recipient of gas refund
-    /// @param _amount amount of SI tokens to swap
+    /// @param _amount amount of STRM tokens to swap
     function sellSI(
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
         string calldata _destinationChain,

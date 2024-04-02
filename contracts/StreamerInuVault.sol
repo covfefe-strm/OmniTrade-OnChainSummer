@@ -7,9 +7,9 @@ import {IStreamerInuVault} from "./interfaces/IStreamerInuVault.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 /// @title StreamerInu Vault
 contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
-    /// @dev Stores SI balance which describe reserved tokens for swap
+    /// @dev Stores STRM balance which describe reserved tokens for swap
     uint256 public lastSiBalance;
-    /// @dev Stores address of SI token
+    /// @dev Stores address of STRM token
     address public si;
     /// @dev Stores address of USDC token
     address public usdc;
@@ -40,18 +40,18 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         swapRouterV3 = ISwapRouter(_swapRouter);
         siUsdcPairFee = _fee;
     }
-    /// @notice Update amount of reserved SI tokens for swap
-    /// @dev only SI token can call the function
-    /// @param _amount amount of received SI tokens
+    /// @notice Update amount of reserved STRM tokens for swap
+    /// @dev only STRM token can call the function
+    /// @param _amount amount of received STRM tokens
     function receiveTax(uint256 _amount) external onlySIToken {
         lastSiBalance += _amount;
         emit UpdatedTaxAmount(_amount);
     }
 
-    /// @notice Swap reserved SI tokens to USDC and transfer them to recipient
+    /// @notice Swap reserved STRM tokens to USDC and transfer them to recipient
     /// @dev only owner can call the function
-    /// @param _amount amount of SI tokens to swap
-    /// 0 - all available SI tokens
+    /// @param _amount amount of STRM tokens to swap
+    /// 0 - all available STRM tokens
     /// if amount is greater then available amount, revert with error "NotEnoughBalance"
     /// @param _recipient address of USDC recipient
     /// @param _amountOutMin minimum amount of USDC tokens after swap 
@@ -84,7 +84,7 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
 
     /// @notice Admin function in case then some one transfer ERC20 token to the contract
     /// @dev only owner can call the function
-    /// if _token equals to SI token, makes check for reservedAmount and current balance
+    /// if _token equals to STRM token, makes check for reservedAmount and current balance
     /// if _amount > currentBalance - reservedTokens, then revert with error "NotEnoughBalance"
     /// @param _token address of token to withdraw
     /// @param _recipient address of tokens recipient

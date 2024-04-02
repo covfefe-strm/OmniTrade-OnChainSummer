@@ -13,7 +13,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     uint256 public constant PRECISION = 1 * 10 ** 18;
     /// @dev Stores max tax percent which equals 5%
     uint256 public constant MAX_TAX_PERCENT = 5 * 10 ** 16;
-    /// @dev Stores address of Uniswap V3 Pool of SI and USDC tokens;
+    /// @dev Stores address of Uniswap V3 Pool of STRM and USDC tokens;
     address public siUsdcPair;
     /// @dev Stores current tax percent, can be in range from 0% to 5%
     uint256 public taxPercent;

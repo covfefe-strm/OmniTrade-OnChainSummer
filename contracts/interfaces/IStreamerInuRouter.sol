@@ -4,7 +4,7 @@ import {ISquidMulticall} from "./squidRouter/ISquidMulticall.sol";
 import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/interfaces/IOFTReceiverV2.sol";
 
 interface IStreamerInuRouter is IOFTReceiverV2 {
-    /// @dev Emits when the contract receive SI token after cross chain transfer
+    /// @dev Emits when the contract receive STRM token after cross chain transfer
     event OFTTokensReceived(address indexed recipient, uint256 amount);
     /// @dev Emits when sender deposited native token;
     event NativeTokenDeposited(address indexed recipient, uint256 amount);
@@ -12,7 +12,7 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     event NativeTokenWithdrawn(address indexed recipient, uint256 amount);
     /// @dev Throws if sender isn't SquidMultical contract
     error NotSquidMultical();
-    /// @dev Throws if sender isn't SI token
+    /// @dev Throws if sender isn't STRM token
     error NotSIToken();
     /// @dev Throws if user or owner pass zero address as param
     error ZeroAddress();
@@ -20,13 +20,13 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     error ZeroValue();
     /// @dev Throws if pass chainId which equals to 0
     error IncorrectChainId();
-    /// @dev Throws if user want swap or transfer more SI token than the contract has
+    /// @dev Throws if user want swap or transfer more STRM token than the contract has
     error NotEnoughBalance();
-    /// @dev Throws if user has zero SI token balance on the contract
+    /// @dev Throws if user has zero STRM token balance on the contract
     error ZeroSIBalance();
-    /// @dev Throws if approve of SI token failed
+    /// @dev Throws if approve of STRM token failed
     error ApproveFailed();
-    /// @dev Throws if transfer of SI token failed
+    /// @dev Throws if transfer of STRM token failed
     error TransferFailed();
     /// @dev Throws if transfer of naitve token failed
     error NativeTransferFailed();

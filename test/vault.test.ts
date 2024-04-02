@@ -81,7 +81,7 @@ describe("StreamerInuVault", async () => {
     await originalState.restore();
   });
   describe("receiveTax", async () => {
-    it("Must revert if sender isn't SI token", async () => {
+    it("Must revert if sender isn't STRM token", async () => {
       await expect(
         siVault.receiveTax(ethers.parseEther("1")),
       ).to.be.revertedWithCustomError(siVault, "NotSIToken");
@@ -111,12 +111,12 @@ describe("StreamerInuVault", async () => {
         siVault.connect(user1).sellSi(ethers.parseEther("0"), user1.address, 0),
       ).to.be.revertedWith(errors.OWNABLE_ERROR);
     });
-    it("Must revert if amount is greater then available amount of SI token", async () => {
+    it("Must revert if amount is greater then available amount of STRM token", async () => {
       await expect(
         siVault.sellSi(ethers.parseEther("1"), user1.address, 0),
       ).to.be.revertedWithCustomError(siVault, "NotEnoughBalance");
     });
-    it("Must swap all SI to USDC correctly", async () => {
+    it("Must swap all STRM to USDC correctly", async () => {
       await si.connect(pair).transfer(owner.address, ethers.parseEther("1"));
       let amount = await siVault.lastSiBalance();
       let tx = await siVault.sellSi(0, user1.address, 0);
@@ -162,7 +162,7 @@ describe("StreamerInuVault", async () => {
         ),
       ).to.be.revertedWithCustomError(siVault, "ZeroValue");
     });
-    it("Must revert if token equals to SI and amount is greater then available amount", async () => {
+    it("Must revert if token equals to STRM and amount is greater then available amount", async () => {
       await expect(
         siVault.withdrawUnexpectedTokens(
           await si.getAddress(),
@@ -171,7 +171,7 @@ describe("StreamerInuVault", async () => {
         ),
       ).to.be.revertedWithCustomError(siVault, "NotEnoughBalance");
     });
-    it("Must withdraw SI token correctly", async () => {
+    it("Must withdraw STRM token correctly", async () => {
       await si
         .connect(multisigWallet)
         .transfer(await siVault.getAddress(), ethers.parseEther("1"));

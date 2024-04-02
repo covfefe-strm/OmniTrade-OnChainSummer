@@ -216,8 +216,8 @@ describe("StreamerInuRouter", async () => {
         siRouter.withdrawSI(eth1, ethers.ZeroAddress),
       ).to.be.revertedWithCustomError(siRouter, "ZeroAddress");
     });
-    xit("must revert if transfer of SI token failed", async () => {});
-    it("must withdraw SI token correctly", async () => {
+    xit("must revert if transfer of STRM token failed", async () => {});
+    it("must withdraw STRM token correctly", async () => {
       expect(await siRouter.totalLocked()).to.be.equal(eth1);
       expect(await siRouter.reservedTokens(owner.address)).to.be.equal(eth1);
       expect(await si.balanceOf(await siRouter.getAddress())).to.be.equal(eth1);
@@ -277,12 +277,12 @@ describe("StreamerInuRouter", async () => {
     after(async () => {
       await startSnapshot.restore();
     });
-    it("must revert if sender isn't SI token", async () => {
+    it("must revert if sender isn't STRM token", async () => {
       await expect(
         siRouter.onOFTReceived(0, "0x", 0, toBytes32, eth1, "0x"),
       ).to.be.revertedWithCustomError(siRouter, "NotSIToken");
     });
-    it("must receive SI token correctly to _from address", async () => {
+    it("must receive STRM token correctly to _from address", async () => {
       let tx = await si.sendToSIRouter(
         await siRouter.getAddress(),
         toBytes32,
@@ -295,7 +295,7 @@ describe("StreamerInuRouter", async () => {
         .to.be.emit(siRouter, "OFTTokensReceived")
         .withArgs(owner.address, eth1);
     });
-    it("must receive SI token correctly to address from payload", async () => {
+    it("must receive STRM token correctly to address from payload", async () => {
       const payload = addressToBytes32(user1.address);
       let tx = await si.sendToSIRouter(
         await siRouter.getAddress(),
@@ -335,7 +335,7 @@ describe("StreamerInuRouter", async () => {
         siRouter.sendOFTTokenToOwner(0, toBytes32, user1.address, "0x"),
       ).to.be.revertedWithCustomError(siRouter, "NotSquidMultical");
     });
-    it("must revert if balance of SI token <= total reserved amount", async () => {
+    it("must revert if balance of STRM token <= total reserved amount", async () => {
       await siRouter
         .connect(squidMulticall)
         .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x");
@@ -388,7 +388,7 @@ describe("StreamerInuRouter", async () => {
     after(async () => {
       await startSnapshot.restore();
     });
-    it("must revert if sender doesn't have reserved SI tokens", async () => {
+    it("must revert if sender doesn't have reserved STRM tokens", async () => {
       await expect(
         siRouter.sellSI(
           [],
@@ -400,7 +400,7 @@ describe("StreamerInuRouter", async () => {
         ),
       ).to.be.revertedWithCustomError(siRouter, "ZeroSIBalance");
     });
-    it("must revert if sender doesn't have enough reserved SI tokens", async () => {
+    it("must revert if sender doesn't have enough reserved STRM tokens", async () => {
       await expect(
         siRouter
           .connect(user1)
@@ -414,7 +414,7 @@ describe("StreamerInuRouter", async () => {
           ),
       ).to.be.revertedWithCustomError(siRouter, "NotEnoughBalance");
     });
-    xit("must revert if approve of SI tokens failed", async () => {});
+    xit("must revert if approve of STRM tokens failed", async () => {});
     it("must call callBridgeCall correctly", async () => {
       let tx = siRouter
         .connect(user1)

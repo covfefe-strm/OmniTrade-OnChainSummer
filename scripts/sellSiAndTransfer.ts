@@ -78,7 +78,7 @@ async function main() {
   // axelar scan requested 4.6 matic for execution of the transaction
   // but in the end cost of the transaction cost ~2 matic -_-
   const transactionValue = ethers.parseEther("2.2");
-  // Calls on Mumbai chain - swap SI to aUSDC
+  // Calls on Mumbai chain - swap STRM to aUSDC
   /* 
     0x2F7c52B0Dad83f193890821aC72b40fA15DC4d34 STR
     000064 hex 100
