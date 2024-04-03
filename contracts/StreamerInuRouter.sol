@@ -218,7 +218,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         if (!IERC20(si).approve(squidRouter, _amount)) {
             revert ApproveFailed();
         }
-
+        reservedTokens[_msgSender()] = reservedAmount - _amount;
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
             si,
             _amount,
