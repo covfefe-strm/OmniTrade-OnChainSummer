@@ -261,23 +261,23 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         bytes memory _adapterParams
     ) internal {
         address to = address(uint160(uint256(_toAddress)));
-        uint256 reservedNative = nativeBalance[to];
+        uint256 tnLocked = totalNativeLocked;
+        uint256 freeNative = address(this).balance - tnLocked;
         uint256 native = _getCrossTransferGasCost(
             _dstChainId,
             _toAddress,
             _amount,
             _adapterParams
         );
-
-        if (
-            (address(this).balance - (totalNativeLocked - reservedNative)) <
-            native
-        ) {
-            revert NotEnoughBalance();
+        if (freeNative < native) {
+            uint256 reservedNative = nativeBalance[to];
+            if ((freeNative + reservedNative) < native) {
+                revert NotEnoughBalance();
+            }
+            uint256 spentNative = native - freeNative;
+            nativeBalance[to] = reservedNative - spentNative;
+            totalNativeLocked = tnLocked - spentNative;
         }
-        nativeBalance[to] = native < reservedNative
-            ? reservedNative - native
-            : 0;
         IOFTV2.LzCallParams memory params;
         params.adapterParams = _adapterParams;
         params.refundAddress = payable(address(_refundAddress));
