@@ -169,11 +169,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
         nativeBalance[_msgSender()] = reservedBalance - _amount;
         totalNativeLocked -= _amount;
-        emit NativeTokenWithdrawn(_recipient, _amount);
-        (bool isSent, ) = _recipient.call{value: _amount}("");
-        if (!isSent) {
-            revert NativeTransferFailed();
-        }
+        _sendNative(_recipient, _amount);
     }
 
     function withdrawSI(uint256 _amount, address _recipient) external override {
@@ -219,6 +215,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             revert ApproveFailed();
         }
         reservedTokens[_msgSender()] = reservedAmount - _amount;
+        totalLocked -= _amount;
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
             si,
             _amount,
@@ -278,9 +275,13 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             nativeBalance[to] = reservedNative - spentNative;
             totalNativeLocked = tnLocked - spentNative;
         }
+
+        if (freeNative > native) {
+            _sendNative(payable(_refundAddress), freeNative - native);
+        }
         IOFTV2.LzCallParams memory params;
         params.adapterParams = _adapterParams;
-        params.refundAddress = payable(address(_refundAddress));
+        params.refundAddress = payable(_refundAddress);
         params.zroPaymentAddress = address(0);
         IOFTV2(si).sendFrom{value: native}(
             address(this),
@@ -289,6 +290,14 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             _amount,
             params
         );
+    }
+
+    function _sendNative(address payable _recipient, uint256 _amount) internal {
+        emit NativeTokenTransferred(_recipient, _amount);
+        (bool isSent, ) = _recipient.call{value: _amount}("");
+        if (!isSent) {
+            revert NativeTransferFailed();
+        }
     }
 
     function _getCrossTransferGasCost(

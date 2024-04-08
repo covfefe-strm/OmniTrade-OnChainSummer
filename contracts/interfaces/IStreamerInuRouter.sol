@@ -9,7 +9,7 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     /// @dev Emits when sender deposited native token;
     event NativeTokenDeposited(address indexed recipient, uint256 amount);
     /// @dev Emits when user withdraw native token;
-    event NativeTokenWithdrawn(address indexed recipient, uint256 amount);
+    event NativeTokenTransferred(address indexed recipient, uint256 amount);
     /// @dev Throws if sender isn't SquidMultical contract
     error NotSquidMultical();
     /// @dev Throws if sender isn't STRM token
@@ -44,7 +44,10 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
         bytes memory _adapterParams
     ) external payable;
 
-    function withdrawNative(uint256 _amount, address payable _recipient) external;
+    function withdrawNative(
+        uint256 _amount,
+        address payable _recipient
+    ) external;
 
     function withdrawSI(uint256 _amount, address _recipient) external;
 
@@ -62,5 +65,5 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
         bytes32 _toAddress,
         uint256 _amount,
         bytes memory _adapterParams
-        ) external view returns(uint256);
+    ) external view returns (uint256);
 }
