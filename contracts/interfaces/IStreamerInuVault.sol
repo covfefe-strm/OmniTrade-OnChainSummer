@@ -9,7 +9,7 @@ interface IStreamerInuVault {
     /// @dev Throws if owner pass zero value
     error ZeroValue();
     /// @dev Throws if sender isn't STRM token
-    error NotSIToken();
+    error AccessDenied();
     /// @dev Throws if contract doesn't have enough balance of token\
     /// to make transfer or swap action
     error NotEnoughBalance();

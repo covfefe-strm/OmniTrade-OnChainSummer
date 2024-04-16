@@ -63,6 +63,7 @@ describe("StreamerInuVault", async () => {
     siVault = await vaultFactory.deploy(
       await si.getAddress(),
       await usdc.getAddress(),
+      user1.address,
       100,
       await swapRouter.getAddress(),
     );
@@ -81,10 +82,10 @@ describe("StreamerInuVault", async () => {
     await originalState.restore();
   });
   describe("receiveTax", async () => {
-    it("Must revert if sender isn't STRM token", async () => {
+    it("Must revert if sender isn't STRM token or STRM Router", async () => {
       await expect(
         siVault.receiveTax(ethers.parseEther("1")),
-      ).to.be.revertedWithCustomError(siVault, "NotSIToken");
+      ).to.be.revertedWithCustomError(siVault, "AccessDenied");
     });
     it("Must receive tax correctly", async () => {
       let tx = await si

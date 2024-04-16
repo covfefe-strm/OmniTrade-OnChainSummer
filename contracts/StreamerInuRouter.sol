@@ -7,8 +7,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ISquidRouter} from "./interfaces/squidRouter/ISquidRouter.sol";
 import {IStreamerInuRouter, ISquidMulticall} from "./interfaces/IStreamerInuRouter.sol";
+import {IStreamerInuVault} from "contracts/interfaces/IStreamerInuVault.sol";
 string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
-
+uint256 constant TAX_PERCENT = 2 * 10 ** 15; // 0.2%
+uint256 constant TOTAL_PERCENT = 1 * 10 ** 18; // 100%
 /*  _____ _                                    _____             _____             _            
   / ____| |                                  |_   _|           |  __ \           | |           
  | (___ | |_ _ __ ___  __ _ _ __ ___   ___ _ __| |  _ __  _   _| |__) |___  _   _| |_ ___ _ __ 
@@ -35,6 +37,9 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     /// @notice stores address of STRM token
     /// @return address of STRM token
     address public si;
+    /// @notice stores address of STRM token
+    /// @return address of STRM token
+    address public siVault;
     /// @notice stores address of SquidRouter contract
     /// @return address of SquidRouter token
     address public squidRouter;
@@ -95,6 +100,17 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         squidRouter = _squidRouter;
     }
 
+    /// @notice Set new address of StreamerInuVault contract
+    /// @dev only Owner can call the function
+    /// @dev new address can't be equal to zero address
+    /// @param _siVault new address of StreamerInuVault contract
+    function setSIVault(address _siVault) external override onlyOwner {
+        if (_siVault == address(0)) {
+            revert ZeroAddress();
+        }
+        siVault = _siVault;
+    }
+
     /// FUNCTIONS FOR CONTRACT CALLS
 
     /// @notice send received STRM token to recipient on the source chain
@@ -108,17 +124,26 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         address _refundAddress,
         bytes memory _adapterParams
     ) external payable override onlySquidMulticall {
-        uint256 siBalance = IERC20(si).balanceOf(address(this));
+        address _si = si;
+        uint256 siBalance = IERC20(_si).balanceOf(address(this));
         uint256 amount;
         if (siBalance <= totalLocked) {
             revert NotEnoughBalance();
         }
         amount = siBalance - totalLocked;
+        uint256 amountToTransfer;
+        if (siVault != address(0)) {
+            uint256 taxAmount = ((amount * TAX_PERCENT * TOTAL_PERCENT) /
+                TOTAL_PERCENT) / TOTAL_PERCENT;
+            amountToTransfer = amount - taxAmount;
+            IERC20(_si).transfer(siVault, taxAmount);
+            IStreamerInuVault(siVault).receiveTax(taxAmount);
+        }
         _sendFromOFT(
             _dstChainId,
             _toAddress,
             _refundAddress,
-            amount,
+            amountToTransfer == 0 ? amount : amountToTransfer,
             _adapterParams
         );
     }
@@ -210,15 +235,24 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         if (reservedAmount < _amount) {
             revert NotEnoughBalance();
         }
-
-        if (!IERC20(si).approve(squidRouter, _amount)) {
+        address _si = si;
+        uint256 amountToSell;
+        if (siVault != address(0)) {
+            uint256 taxAmount = ((_amount * TAX_PERCENT * TOTAL_PERCENT) /
+                TOTAL_PERCENT) / TOTAL_PERCENT;
+            amountToSell = _amount - taxAmount;
+            IERC20(_si).transfer(siVault, taxAmount);
+            IStreamerInuVault(siVault).receiveTax(taxAmount);
+        }
+        amountToSell = amountToSell == 0 ? _amount : amountToSell;
+        if (!IERC20(_si).approve(squidRouter, amountToSell)) {
             revert ApproveFailed();
         }
         reservedTokens[_msgSender()] = reservedAmount - _amount;
         totalLocked -= _amount;
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
-            si,
-            _amount,
+            _si,
+            amountToSell,
             _sqdCallsSourceChain,
             BRIDER_TOKEN_SYMBOL,
             _destinationChain,

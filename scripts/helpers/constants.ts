@@ -16,6 +16,14 @@ export const layerZeroEndpointsList = [
     endpointId: 10109,
     endpoint: "0xf69186dfba60ddb133e91e9a4b5673624293d8f8",
   },
+  {
+    ChainID: 44787,
+    ChainName: "Celo Alfajores",
+    GatewayContract: "",
+    GasServiceContract: "",
+    endpointId: 10125,
+    endpoint: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  },
 ];
 export const crossChainAddresses = {
   bscTestnet: {

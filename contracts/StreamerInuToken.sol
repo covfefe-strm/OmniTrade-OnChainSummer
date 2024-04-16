@@ -88,7 +88,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         // if some of the params haven't set
         if(siUsdcPair == address(0) || siVault == address(0)){
             super._transfer(from, to, amount);
-        } else if (from == siUsdcPair) {
+        } else if (from == siUsdcPair || to == siUsdcPair) {
             uint256 tax = _getTaxAmount(amount);
             if (tax != 0) {
                 super._transfer(from, siVault, tax);

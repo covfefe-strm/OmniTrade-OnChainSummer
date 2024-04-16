@@ -11,22 +11,18 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
     uint256 public lastSiBalance;
     /// @dev Stores address of STRM token
     address public si;
+    /// @dev Stores address of StreamerInuRouter contract
+    address public siRouter;
     /// @dev Stores address of USDC token
     address public usdc;
     /// @dev Stores fee of SI/USDC pool
     uint24 public siUsdcPairFee;
     /// @dev Stores address of Uniswap Swap Router V3
     ISwapRouter public swapRouterV3;
-
-    modifier onlySIToken() {
-        if (_msgSender() != si) {
-            revert NotSIToken();
-        }
-        _;
-    }
-    constructor(address _si, address _usdc, uint24 _fee, address _swapRouter) {
+    constructor(address _si, address _usdc,address _siRouter, uint24 _fee, address _swapRouter) {
         if (
             _si == address(0) ||
+            _siRouter == address(0) ||
             _usdc == address(0) ||
             _swapRouter == address(0)
         ) {
@@ -36,6 +32,7 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
             revert ZeroValue();
         }
         si = _si;
+        siRouter = _siRouter;
         usdc = _usdc;
         swapRouterV3 = ISwapRouter(_swapRouter);
         siUsdcPairFee = _fee;
@@ -43,7 +40,10 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
     /// @notice Update amount of reserved STRM tokens for swap
     /// @dev only STRM token can call the function
     /// @param _amount amount of received STRM tokens
-    function receiveTax(uint256 _amount) external onlySIToken {
+    function receiveTax(uint256 _amount) external {
+        if (_msgSender() != si && _msgSender() != siRouter) {
+            revert AccessDenied();
+        }
         lastSiBalance += _amount;
         emit UpdatedTaxAmount(_amount);
     }

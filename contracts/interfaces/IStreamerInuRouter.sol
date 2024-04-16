@@ -37,6 +37,8 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
 
     function setSquidRouter(address _squidRouter) external;
 
+    function setSIVault(address _siVault) external;
+
     function sendOFTTokenToOwner(
         uint16 _dstChainId,
         bytes32 _toAddress,

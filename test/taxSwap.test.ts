@@ -81,7 +81,7 @@ describe("UniswapTaxTest", async () => {
       SWAP_ROUTER,
     )) as SwapRouterMock;
     quoter = (await quoterFactory.attach(QUOTER)) as QuoterV2Mock;
-    poolFactory = (await poolFactoryFactory.attach(FACTORY)) as PoolFactoryMock;
+    // poolFactory = (await poolFactoryFactory.attach(FACTORY)) as PoolFactoryMock;
     positionManager = (await positionManagerFactory.attach(
       POSITION_MANAGER,
     )) as NonfungiblePositionManagerMock;

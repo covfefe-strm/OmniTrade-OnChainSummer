@@ -12,7 +12,8 @@ dotenv.config();
 const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
   ? process.env.DEV_PRIVATE_KEY
   : "0000000000000000000000000000000000000000000000000000000000000000";
-const { BSCSCAN_KEY, MUMBAISCAN_KEY, INFURA_API_KEY } = process.env;
+const { BSCSCAN_KEY, MUMBAISCAN_KEY, CELOSCAN_KEY, INFURA_API_KEY } =
+  process.env;
 
 const config: HardhatUserConfig = {
   // typechain: {
@@ -38,10 +39,10 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       // for test purposes
       chainId: 137,
-      forking: {
+      /* forking: {
         url: `https://polygon-mumbai.infura.io/v3/${INFURA_API_KEY}`,
         blockNumber: 47582096,
-      },
+      }, */
     },
     coverage: {
       gas: 0xfffffffffff,
@@ -59,6 +60,11 @@ const config: HardhatUserConfig = {
       chainId: 80001,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
+    celoAlfajores: {
+      url: `https://celo-alfajores.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 44787,
+      accounts: [`${DEV_PRIVATE_KEY}`],
+    },
     polygon: {
       url: `https://polygon-rpc.com/`,
       chainId: 137,
@@ -69,9 +75,20 @@ const config: HardhatUserConfig = {
     apiKey: {
       bscTestnet: BSCSCAN_KEY,
       polygonMumbai: MUMBAISCAN_KEY,
+      celoAlfajores: CELOSCAN_KEY,
     },
     // apiKey: BSCSCAN_KEY,
     // apiKey: MUMBAISCAN_KEY,
+    customChains: [
+      {
+        network: "celoAlfajores",
+        chainId: 44787,
+        urls: {
+          apiURL: "https://api-alfajores.celoscan.io/api",
+          browserURL: "https://alfajores.celoscan.io/",
+        },
+      },
+    ],
   },
   sourcify: {
     enabled: false,

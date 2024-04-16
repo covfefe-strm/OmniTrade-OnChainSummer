@@ -63,6 +63,7 @@ describe("StreamerInuToken", async () => {
     siVault = await vaultFactory.deploy(
       await si.getAddress(),
       await usdc.getAddress(),
+      owner.address,
       100,
       await swapRouter.getAddress(),
     );
