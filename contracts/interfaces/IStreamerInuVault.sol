@@ -10,9 +10,13 @@ interface IStreamerInuVault {
     error ZeroValue();
     /// @dev Throws if sender isn't STRM token
     error AccessDenied();
+    /// @dev Throws if IERC20 approve function returns false
+    error ApproveFailed();
     /// @dev Throws if contract doesn't have enough balance of token\
     /// to make transfer or swap action
     error NotEnoughBalance();
+    function setRouter(address _newRouter) external;
+    function setPairFee( uint24 _fee) external;
     function receiveTax(uint256 _amount) external;
     function sellSi(
         uint256 _amount,

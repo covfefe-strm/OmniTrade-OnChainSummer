@@ -12,8 +12,13 @@ dotenv.config();
 const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
   ? process.env.DEV_PRIVATE_KEY
   : "0000000000000000000000000000000000000000000000000000000000000000";
-const { BSCSCAN_KEY, MUMBAISCAN_KEY, CELOSCAN_KEY, INFURA_API_KEY } =
-  process.env;
+const {
+  BSCSCAN_KEY,
+  MUMBAISCAN_KEY,
+  CELOSCAN_KEY,
+  INFURA_API_KEY,
+  QUICKNODE_KEY,
+} = process.env;
 
 const config: HardhatUserConfig = {
   // typechain: {
@@ -38,11 +43,11 @@ const config: HardhatUserConfig = {
       // VotingEscrow too big, that's why we need to use the property
       allowUnlimitedContractSize: true,
       // for test purposes
-      chainId: 137,
-      /* forking: {
-        url: `https://polygon-mumbai.infura.io/v3/${INFURA_API_KEY}`,
-        blockNumber: 47582096,
-      }, */
+      chainId: 8453,
+      forking: {
+        url: `https://neat-fluent-telescope.base-mainnet.quiknode.pro/${QUICKNODE_KEY}/`,
+        blockNumber: 13251400,
+      },
     },
     coverage: {
       gas: 0xfffffffffff,

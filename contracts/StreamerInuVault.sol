@@ -22,14 +22,10 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
     constructor(address _si, address _usdc,address _siRouter, uint24 _fee, address _swapRouter) {
         if (
             _si == address(0) ||
-            _siRouter == address(0) ||
             _usdc == address(0) ||
             _swapRouter == address(0)
         ) {
             revert ZeroAddress();
-        }
-        if (_fee == 0) {
-            revert ZeroValue();
         }
         si = _si;
         siRouter = _siRouter;
@@ -37,6 +33,21 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         swapRouterV3 = ISwapRouter(_swapRouter);
         siUsdcPairFee = _fee;
     }
+
+    function setRouter(address _newRouter) external onlyOwner(){
+        if (_newRouter == address(0)) {
+            revert ZeroAddress();
+        }
+        siRouter = _newRouter;
+    }
+
+    function setPairFee( uint24 _fee) external onlyOwner(){
+        if (_fee == 0) {
+            revert ZeroValue();
+        }
+        siUsdcPairFee = _fee;
+    }
+
     /// @notice Update amount of reserved STRM tokens for swap
     /// @dev only STRM token can call the function
     /// @param _amount amount of received STRM tokens
@@ -66,7 +77,9 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         } else if (_amount > lastSiBalance) {
             revert NotEnoughBalance();
         }
-        siToken.approve(address(swapRouterV3), _amount);
+        if(!siToken.approve(address(swapRouterV3), _amount)){
+            revert ApproveFailed();
+        }
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams(
                 address(siToken),

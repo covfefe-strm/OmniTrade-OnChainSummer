@@ -15,6 +15,8 @@ import {
   NonfungiblePositionManagerMock__factory,
   PoolFactoryMock,
   PoolFactoryMock__factory,
+  StreamerInuRouter__factory,
+  StreamerInuRouter,
 } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
@@ -28,14 +30,14 @@ let siFactory: StreamerInuToken__factory;
 let si: StreamerInuToken;
 let vaultFactory: StreamerInuVault__factory;
 let siVault: StreamerInuVault;
+let routerFactory: StreamerInuRouter__factory;
+let router: StreamerInuRouter;
 let swapRouterFactory: SwapRouterMock__factory;
 let swapRouter: SwapRouterMock;
 let quoterFactory: QuoterV2Mock__factory;
 let quoter: QuoterV2Mock;
 let positionManager: NonfungiblePositionManagerMock;
 let positionManagerFactory: NonfungiblePositionManagerMock__factory;
-let poolFactory: PoolFactoryMock;
-let poolFactoryFactory: PoolFactoryMock__factory;
 let erc20Factory: OftMock__factory;
 let usdc: OftMock;
 let owner: SignerWithAddress;
@@ -44,12 +46,15 @@ let taxRecipient: SignerWithAddress;
 let originalState: SnapshotRestorer;
 let startSnapshot: SnapshotRestorer;
 let name = "StreamerInu";
-let symbol = "SI";
+let symbol = "STRM";
 let shareDecimal = 8;
-let SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"; //0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45;
-let QUOTER = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
-let FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
-let POSITION_MANAGER = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
+// all addresses was taken from https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
+let SWAP_ROUTER = "0x2626664c2603336e57b271c5c0b26f421741e481";
+let QUOTER = "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a";
+let POSITION_MANAGER = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1";
+// all addresses was taken from https://docs.squidrouter.com/dev-resources/contract-addresses
+let SQUID_ROUTER = "0xce16F69375520ab01377ce7B88f5BA8C48F8D666";
+let SQUID_MULTICALL = "0xEa749Fd6bA492dbc14c24FE8A3d08769229b896c";
 let pool: any;
 describe("UniswapTaxTest", async () => {
   before(async () => {
@@ -61,6 +66,9 @@ describe("UniswapTaxTest", async () => {
     vaultFactory = (await ethers.getContractFactory(
       "StreamerInuVault",
     )) as StreamerInuVault__factory;
+    routerFactory = (await ethers.getContractFactory(
+      "StreamerInuRouter",
+    )) as StreamerInuRouter__factory;
     swapRouterFactory = (await ethers.getContractFactory(
       "SwapRouterMock",
     )) as SwapRouterMock__factory;
@@ -70,9 +78,6 @@ describe("UniswapTaxTest", async () => {
     positionManagerFactory = (await ethers.getContractFactory(
       "NonfungiblePositionManagerMock",
     )) as NonfungiblePositionManagerMock__factory;
-    poolFactoryFactory = (await ethers.getContractFactory(
-      "PoolFactoryMock",
-    )) as PoolFactoryMock__factory;
     erc20Factory = (await ethers.getContractFactory(
       "OftMock",
     )) as OftMock__factory;
@@ -81,7 +86,6 @@ describe("UniswapTaxTest", async () => {
       SWAP_ROUTER,
     )) as SwapRouterMock;
     quoter = (await quoterFactory.attach(QUOTER)) as QuoterV2Mock;
-    // poolFactory = (await poolFactoryFactory.attach(FACTORY)) as PoolFactoryMock;
     positionManager = (await positionManagerFactory.attach(
       POSITION_MANAGER,
     )) as NonfungiblePositionManagerMock;
@@ -127,12 +131,23 @@ describe("UniswapTaxTest", async () => {
     siVault = await vaultFactory.deploy(
       await si.getAddress(),
       await usdc.getAddress(),
+      ethers.ZeroAddress,
       500,
       await swapRouter.getAddress(),
+    );
+    router = await routerFactory.deploy(
+      await si.getAddress(),
+      SQUID_ROUTER,
+      SQUID_MULTICALL,
     );
     await si.setTaxPercent(ethers.parseEther("0.05"));
     await si.setPair(pool);
     await si.setSiVault(await siVault.getAddress());
+    console.log("si", await si.getAddress());
+    console.log("siVault", await siVault.getAddress());
+    console.log("router", await router.getAddress());
+    console.log("usdc", await usdc.getAddress());
+    console.log("pool", pool);
     startSnapshot = await takeSnapshot();
   });
   afterEach(async () => {
@@ -155,7 +170,10 @@ describe("UniswapTaxTest", async () => {
         amountOutMinimum: 0n,
         sqrtPriceLimitX96: 0n,
       };
+      console.log(1);
       let swapTx = await swapRouter.exactInputSingle(exactInputSingleParams);
+
+      console.log(1);
       expect(await siVault.lastSiBalance()).to.be.closeTo(
         ethers.parseEther("0.05"),
         ethers.parseEther("0.001"),
@@ -182,8 +200,12 @@ describe("UniswapTaxTest", async () => {
         amountOutMinimum: 0n,
         sqrtPriceLimitX96: 0n,
       };
+      console.log(1);
       await swapRouter.exactInputSingle(exactInputSingleParams);
+      console.log(1);
       let tx = await siVault.sellSi(0, taxRecipient.address, 0);
+
+      console.log(1);
       expect(await usdc.balanceOf(taxRecipient.address)).to.be.closeTo(
         ethers.parseEther("0.049"),
         ethers.parseEther("0.002"),
