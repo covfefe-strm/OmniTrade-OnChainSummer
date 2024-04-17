@@ -21,6 +21,10 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev Stores address of taxes recipient SC, should be StreamerInuVault
     /// and implement IStreamerInuVault interface
     address public siVault;
+    /// @dev Stores state of tradable state
+    /// When false - only owner can transfer token
+    /// After first set true, becames immutable
+    bool public isTradable;
     constructor(
         string memory _name,
         string memory _symbol,
@@ -70,6 +74,12 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         _setSiVault(_siVault);
     }
 
+    /// @notice Turn on transfer ability to all users
+    /// @dev only owner can call the function
+    function turnOnTrading() external onlyOwner{
+        isTradable = true;
+    }
+
     /// @notice Return chaind id of current network
     function getChainId() public view returns (uint256) {
         uint256 chainId;
@@ -85,6 +95,9 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         address to,
         uint256 amount
     ) internal override {
+        if(!isTradable && from!=owner()){
+            revert IsPaused();
+        }
         // the if statement prevent blocking of transfer function
         // if some of the params haven't set
         if(siUsdcPair == address(0) || siVault == address(0)){

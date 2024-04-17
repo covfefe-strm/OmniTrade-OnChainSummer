@@ -60,6 +60,7 @@ describe("StreamerInuVault", async () => {
       owner.address, //_lzEndpoint
       multisigWallet.address, //_recipient
     );
+    await si.turnOnTrading();
     siVault = await vaultFactory.deploy(
       await si.getAddress(),
       await usdc.getAddress(),

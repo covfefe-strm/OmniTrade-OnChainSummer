@@ -150,7 +150,19 @@ describe("StreamerInuToken", async () => {
     });
   });
   describe("transfer", async () => {
+    it("must from owner if isTradable == false", async () => {
+      await si.transferOwnership(multisigWallet.address);
+      await si.connect(multisigWallet).transfer(user1.address, 100);
+      expect(await si.balanceOf(user1.address)).to.be.equal(100);
+    });
+    it("must transfer by using transferFrom owner if isTradable == false", async () => {
+      await si.transferOwnership(multisigWallet.address);
+      await si.connect(multisigWallet).approve(owner.address, 100);
+      await si.transferFrom(multisigWallet.address, user1.address, 100);
+      expect(await si.balanceOf(user1.address)).to.be.equal(100);
+    });
     it("must calculate taxes correctly (5%)", async () => {
+      await si.turnOnTrading();
       let eth1 = await ethers.parseEther("1");
       await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
@@ -170,6 +182,7 @@ describe("StreamerInuToken", async () => {
       );
     });
     it("must execute pass without taxes (with 0%)", async () => {
+      await si.turnOnTrading();
       let eth1 = await ethers.parseEther("1");
       await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
@@ -179,6 +192,7 @@ describe("StreamerInuToken", async () => {
       expect(await siVault.lastSiBalance()).to.be.equal(0);
     });
     it("must execute pass with tax percent 0.1%", async () => {
+      await si.turnOnTrading();
       let eth1 = await ethers.parseEther("1");
       await si.setPair(pair.address);
       await si.connect(multisigWallet).transfer(pair, eth1);
@@ -198,6 +212,7 @@ describe("StreamerInuToken", async () => {
       );
     });
     it("must transfer taxes to Vault contract when STRM are transferred from pool (tax 2%)", async () => {
+      await si.turnOnTrading();
       let eth1 = await ethers.parseEther("1");
       await si.setTaxPercent(ethers.parseEther("0.02"));
       await si.connect(multisigWallet).transfer(pair, eth1);

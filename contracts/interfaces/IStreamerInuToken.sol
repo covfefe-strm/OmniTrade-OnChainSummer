@@ -15,6 +15,8 @@ interface IStreamerInuToken {
     error WrongTaxPercent();
     /// @dev Throws if passed address doesn't support IStreamerInuVault interface
     error WrongSiVault();
+    /// @dev Throws if not owner tries to transfer token
+    error IsPaused();
     /// @dev Throws if owner try to set SI/USDC pair second time
     error PairInitialized();
     function setTaxPercent(uint256 _taxPercent) external;
