@@ -16,6 +16,7 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { errors } from "./testHelpers/constants";
+// import { router } from "../typechain-types/contracts/squidrouter";
 let siFactory: StreamerInuToken__factory;
 let si: StreamerInuToken;
 let vaultFactory: StreamerInuVault__factory;
@@ -28,6 +29,7 @@ let owner: SignerWithAddress;
 let user1: SignerWithAddress;
 let multisigWallet: SignerWithAddress;
 let pair: SignerWithAddress;
+let router: SignerWithAddress;
 let taxRecipient: SignerWithAddress;
 let startSnapshot: SnapshotRestorer;
 let originalState: SnapshotRestorer;
@@ -37,7 +39,7 @@ let shareDecimal = 8;
 describe("StreamerInuToken", async () => {
   before(async () => {
     originalState = await takeSnapshot();
-    [owner, user1, multisigWallet, pair, taxRecipient] =
+    [owner, user1, multisigWallet, pair, router, taxRecipient] =
       await ethers.getSigners();
     siFactory = (await ethers.getContractFactory(
       "StreamerInuToken",
@@ -63,7 +65,7 @@ describe("StreamerInuToken", async () => {
     siVault = await vaultFactory.deploy(
       await si.getAddress(),
       await usdc.getAddress(),
-      owner.address,
+      router.address,
       100,
       await swapRouter.getAddress(),
     );
@@ -88,8 +90,14 @@ describe("StreamerInuToken", async () => {
         si.setTaxPercent(ethers.parseEther("1")),
       ).to.be.revertedWithCustomError(si, "WrongTaxPercent");
     });
+
+    it("Must revert if tax percent is incorrect after first", async () => {
+      await expect(
+        si.setTaxPercent(ethers.parseEther("1")),
+      ).to.be.revertedWithCustomError(si, "WrongTaxPercent");
+    });
     it("Must set new tax percent correctly", async () => {
-      let percent = ethers.parseEther("0.05");
+      let percent = ethers.parseEther("0.4");
       let tx = await si.setTaxPercent(percent);
       expect(await si.taxPercent()).to.be.equal(percent);
       expect(tx).to.be.emit(si, "SetTaxPercent").withArgs(percent);
@@ -186,6 +194,25 @@ describe("StreamerInuToken", async () => {
       );
       expect(await si.balanceOf(user1.address)).to.be.closeTo(
         ethers.parseEther("0.999"),
+        ethers.parseEther("0.0000001"),
+      );
+    });
+    it("must transfer taxes to Vault contract when STRM are transferred from pool (tax 2%)", async () => {
+      let eth1 = await ethers.parseEther("1");
+      await si.setTaxPercent(ethers.parseEther("0.02"));
+      await si.connect(multisigWallet).transfer(pair, eth1);
+      await si.setPair(pair.address);
+      await si.connect(pair).transfer(user1.address, eth1);
+      expect(await si.balanceOf(await siVault.getAddress())).to.be.closeTo(
+        ethers.parseEther("0.02"),
+        ethers.parseEther("0.0000001"),
+      );
+      expect(await siVault.lastSiBalance()).to.be.closeTo(
+        ethers.parseEther("0.02"),
+        ethers.parseEther("0.0000001"),
+      );
+      expect(await si.balanceOf(user1.address)).to.be.closeTo(
+        ethers.parseEther("0.98"),
         ethers.parseEther("0.0000001"),
       );
     });

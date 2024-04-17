@@ -124,26 +124,17 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         address _refundAddress,
         bytes memory _adapterParams
     ) external payable override onlySquidMulticall {
-        address _si = si;
-        uint256 siBalance = IERC20(_si).balanceOf(address(this));
-        uint256 amount;
+        uint256 siBalance = IERC20(si).balanceOf(address(this));
         if (siBalance <= totalLocked) {
             revert NotEnoughBalance();
         }
-        amount = siBalance - totalLocked;
-        uint256 amountToTransfer;
-        if (siVault != address(0)) {
-            uint256 taxAmount = ((amount * TAX_PERCENT * TOTAL_PERCENT) /
-                TOTAL_PERCENT) / TOTAL_PERCENT;
-            amountToTransfer = amount - taxAmount;
-            IERC20(_si).transfer(siVault, taxAmount);
-            IStreamerInuVault(siVault).receiveTax(taxAmount);
-        }
+        uint256 amount = siBalance - totalLocked;
+        uint256 amountToTransfer = _sendTaxes(amount);
         _sendFromOFT(
             _dstChainId,
             _toAddress,
             _refundAddress,
-            amountToTransfer == 0 ? amount : amountToTransfer,
+            amountToTransfer,
             _adapterParams
         );
     }
@@ -236,15 +227,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             revert NotEnoughBalance();
         }
         address _si = si;
-        uint256 amountToSell;
-        if (siVault != address(0)) {
-            uint256 taxAmount = ((_amount * TAX_PERCENT * TOTAL_PERCENT) /
-                TOTAL_PERCENT) / TOTAL_PERCENT;
-            amountToSell = _amount - taxAmount;
-            IERC20(_si).transfer(siVault, taxAmount);
-            IStreamerInuVault(siVault).receiveTax(taxAmount);
-        }
-        amountToSell = amountToSell == 0 ? _amount : amountToSell;
+        uint256 amountToSell = _sendTaxes(_amount);
         if (!IERC20(_si).approve(squidRouter, amountToSell)) {
             revert ApproveFailed();
         }
@@ -334,6 +317,14 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
     }
 
+    function _sendTaxes(uint256 _amount) internal returns (uint256 remainder) {
+        if (siVault == address(0)) return _amount;
+        uint256 tax = _getTaxAmount(_amount);
+        IERC20(si).transfer(siVault, tax);
+        IStreamerInuVault(siVault).receiveTax(tax);
+        remainder = _amount - tax;
+    }
+
     function _getCrossTransferGasCost(
         uint16 _dstChainId,
         bytes32 _toAddress,
@@ -347,5 +338,13 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             false,
             _adapterParams
         );
+    }
+
+    function _getTaxAmount(
+        uint256 _amount
+    ) internal pure returns (uint256 taxAmount) {
+        taxAmount =
+            ((_amount * TAX_PERCENT * TOTAL_PERCENT) / TOTAL_PERCENT) /
+            TOTAL_PERCENT;
     }
 }

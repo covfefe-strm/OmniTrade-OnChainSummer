@@ -11,7 +11,11 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     uint256 public constant MINT_CHAIN_ID = 8453;
     /// @dev Uses for calculation of tax amount
     uint256 public constant PRECISION = 1 * 10 ** 18;
+    /// @dev Stores max tax percent which equals 40%
+    /// The percent is use for taxing first 24h after deploy
+    uint256 public constant MAX_TAX_PERCENT_F24 = 4 * 10 ** 17;
     /// @dev Stores max tax percent which equals 5%
+    /// The percent is use for taxing after first 24h after deploy
     uint256 public constant MAX_TAX_PERCENT = 5 * 10 ** 16;
     /// @dev Stores address of Uniswap V3 Pool of STRM and USDC tokens;
     address public siUsdcPair;
@@ -20,6 +24,8 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev Stores address of taxes recipient SC, should be StreamerInuVault
     /// and implement IStreamerInuVault interface
     address public siVault;
+    /// @dev Stores timestamp of deploying of the contract
+    uint256 public creationTimestamp;
     constructor(
         string memory _name,
         string memory _symbol,
@@ -33,6 +39,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
             }
             _mint(_recipient, 1_500_000_000 ether);
         }
+        creationTimestamp = block.timestamp;
     }
 
     /// @notice Set new tax percent
@@ -40,7 +47,8 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// tax percent must be in range [0% - 5%]
     /// @param _taxPercent percent of tax
     function setTaxPercent(uint256 _taxPercent) external onlyOwner {
-        if (_taxPercent > MAX_TAX_PERCENT) {
+        uint256 maxTaxPercent = block.timestamp > (creationTimestamp +24*60*60) ? MAX_TAX_PERCENT:MAX_TAX_PERCENT_F24; 
+        if (_taxPercent > maxTaxPercent) {
             revert WrongTaxPercent();
         }
         taxPercent = _taxPercent;
@@ -88,7 +96,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         // if some of the params haven't set
         if(siUsdcPair == address(0) || siVault == address(0)){
             super._transfer(from, to, amount);
-        } else if (from == siUsdcPair || to == siUsdcPair) {
+        } else if (from == siUsdcPair) {
             uint256 tax = _getTaxAmount(amount);
             if (tax != 0) {
                 super._transfer(from, siVault, tax);

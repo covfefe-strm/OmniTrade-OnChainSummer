@@ -143,11 +143,6 @@ describe("UniswapTaxTest", async () => {
     await si.setTaxPercent(ethers.parseEther("0.05"));
     await si.setPair(pool);
     await si.setSiVault(await siVault.getAddress());
-    console.log("si", await si.getAddress());
-    console.log("siVault", await siVault.getAddress());
-    console.log("router", await router.getAddress());
-    console.log("usdc", await usdc.getAddress());
-    console.log("pool", pool);
     startSnapshot = await takeSnapshot();
   });
   afterEach(async () => {
@@ -170,10 +165,7 @@ describe("UniswapTaxTest", async () => {
         amountOutMinimum: 0n,
         sqrtPriceLimitX96: 0n,
       };
-      console.log(1);
       let swapTx = await swapRouter.exactInputSingle(exactInputSingleParams);
-
-      console.log(1);
       expect(await siVault.lastSiBalance()).to.be.closeTo(
         ethers.parseEther("0.05"),
         ethers.parseEther("0.001"),
@@ -200,12 +192,8 @@ describe("UniswapTaxTest", async () => {
         amountOutMinimum: 0n,
         sqrtPriceLimitX96: 0n,
       };
-      console.log(1);
       await swapRouter.exactInputSingle(exactInputSingleParams);
-      console.log(1);
       let tx = await siVault.sellSi(0, taxRecipient.address, 0);
-
-      console.log(1);
       expect(await usdc.balanceOf(taxRecipient.address)).to.be.closeTo(
         ethers.parseEther("0.049"),
         ethers.parseEther("0.002"),

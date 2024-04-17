@@ -24,6 +24,14 @@ export const layerZeroEndpointsList = [
     endpointId: 10125,
     endpoint: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
   },
+  {
+    ChainID: 137,
+    ChainName: "Polygon",
+    GatewayContract: "",
+    GasServiceContract: "",
+    endpointId: 109,
+    endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62",
+  },
 ];
 export const crossChainAddresses = {
   bscTestnet: {

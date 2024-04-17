@@ -6,9 +6,6 @@ import "@nomicfoundation/hardhat-verify";
 import "solidity-coverage";
 // the sequence of dotenv.config() is very important
 dotenv.config();
-// const PROD_PRIVATE_KEY = process.env.PROD_PRIVATE_KEY
-//   ? process.env.PROD_PRIVATE_KEY
-//   : "0000000000000000000000000000000000000000000000000000000000000000";
 const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
   ? process.env.DEV_PRIVATE_KEY
   : "0000000000000000000000000000000000000000000000000000000000000000";
@@ -71,7 +68,7 @@ const config: HardhatUserConfig = {
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
     polygon: {
-      url: `https://polygon-rpc.com/`,
+      url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 137,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
@@ -81,6 +78,7 @@ const config: HardhatUserConfig = {
       bscTestnet: BSCSCAN_KEY,
       polygonMumbai: MUMBAISCAN_KEY,
       celoAlfajores: CELOSCAN_KEY,
+      polygon: MUMBAISCAN_KEY,
     },
     // apiKey: BSCSCAN_KEY,
     // apiKey: MUMBAISCAN_KEY,

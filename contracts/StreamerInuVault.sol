@@ -19,6 +19,8 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
     uint24 public siUsdcPairFee;
     /// @dev Stores address of Uniswap Swap Router V3
     ISwapRouter public swapRouterV3;
+
+    /// @dev addresses _siRouter and fee can be equal to 0
     constructor(address _si, address _usdc,address _siRouter, uint24 _fee, address _swapRouter) {
         if (
             _si == address(0) ||
@@ -34,6 +36,9 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         siUsdcPairFee = _fee;
     }
 
+    /// @notice Set address of StreamerInuRouter SC
+    /// @dev only owner can call the function
+    /// @param _newRouter address of StreamerInuRouter SC
     function setRouter(address _newRouter) external onlyOwner(){
         if (_newRouter == address(0)) {
             revert ZeroAddress();
@@ -41,6 +46,9 @@ contract StreamerInuVault is IStreamerInuVault, IERC165, Ownable {
         siRouter = _newRouter;
     }
 
+    /// @notice Set fee for Uniswap V3 pair STRM/USDC
+    /// @dev only owner can call the function
+    /// @param _fee fee of created Uniswap V3 pair
     function setPairFee( uint24 _fee) external onlyOwner(){
         if (_fee == 0) {
             revert ZeroValue();
