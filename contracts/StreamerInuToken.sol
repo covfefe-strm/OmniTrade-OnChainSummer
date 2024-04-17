@@ -13,10 +13,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     uint256 public constant PRECISION = 1 * 10 ** 18;
     /// @dev Stores max tax percent which equals 40%
     /// The percent is use for taxing first 24h after deploy
-    uint256 public constant MAX_TAX_PERCENT_F24 = 4 * 10 ** 17;
-    /// @dev Stores max tax percent which equals 5%
-    /// The percent is use for taxing after first 24h after deploy
-    uint256 public constant MAX_TAX_PERCENT = 5 * 10 ** 16;
+    uint256 public constant MAX_TAX_PERCENT = 4 * 10 ** 17;
     /// @dev Stores address of Uniswap V3 Pool of STRM and USDC tokens;
     address public siUsdcPair;
     /// @dev Stores current tax percent, can be in range from 0% to 5%
@@ -24,8 +21,6 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// @dev Stores address of taxes recipient SC, should be StreamerInuVault
     /// and implement IStreamerInuVault interface
     address public siVault;
-    /// @dev Stores timestamp of deploying of the contract
-    uint256 public creationTimestamp;
     constructor(
         string memory _name,
         string memory _symbol,
@@ -39,7 +34,6 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
             }
             _mint(_recipient, 1_500_000_000 ether);
         }
-        creationTimestamp = block.timestamp;
     }
 
     /// @notice Set new tax percent
@@ -47,8 +41,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
     /// tax percent must be in range [0% - 5%]
     /// @param _taxPercent percent of tax
     function setTaxPercent(uint256 _taxPercent) external onlyOwner {
-        uint256 maxTaxPercent = block.timestamp > (creationTimestamp +24*60*60) ? MAX_TAX_PERCENT:MAX_TAX_PERCENT_F24; 
-        if (_taxPercent > maxTaxPercent) {
+        if (_taxPercent > MAX_TAX_PERCENT) {
             revert WrongTaxPercent();
         }
         taxPercent = _taxPercent;
