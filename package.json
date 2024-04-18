@@ -30,6 +30,7 @@
     "eslint-config-google": "^0.14.0",
     "ethers": "^6.10.0",
     "hardhat": "^2.19.5",
+    "hardhat-gas-reporter": "^2.1.1",
     "npm": "^10.4.0",
     "prettier": "^3.2.5",
     "prettier-eslint-cli": "^8.0.1",

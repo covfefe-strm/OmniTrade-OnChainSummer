@@ -9,12 +9,18 @@ dotenv.config();
 const DEV_PRIVATE_KEY = process.env.DEV_PRIVATE_KEY
   ? process.env.DEV_PRIVATE_KEY
   : "0000000000000000000000000000000000000000000000000000000000000000";
+const PROD_PRIVATE_KEY = process.env.PROD_PRIVATE_KEY
+  ? process.env.PROD_PRIVATE_KEY
+  : "0000000000000000000000000000000000000000000000000000000000000000";
 const {
+  ETHERSCAN_KEY,
   BSCSCAN_KEY,
   MUMBAISCAN_KEY,
+  BASESCAN_KEY,
   CELOSCAN_KEY,
   INFURA_API_KEY,
   QUICKNODE_KEY,
+  COINMARKETCAP_KEY,
 } = process.env;
 
 const config: HardhatUserConfig = {
@@ -35,12 +41,16 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  gasReporter: {
+    currency: "USD",
+    L1: "ethereum",
+    coinmarketcap: COINMARKETCAP_KEY,
+  },
   networks: {
     hardhat: {
       // VotingEscrow too big, that's why we need to use the property
       allowUnlimitedContractSize: true,
-      // for test purposes
-      chainId: 8453,
+      chainId: 1, //changed 8453 to 1 for test purposes
       forking: {
         url: `https://neat-fluent-telescope.base-mainnet.quiknode.pro/${QUICKNODE_KEY}/`,
         blockNumber: 13251400,
@@ -70,15 +80,33 @@ const config: HardhatUserConfig = {
     polygon: {
       url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 137,
-      accounts: [`${DEV_PRIVATE_KEY}`],
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    bsc: {
+      url: `https://1rpc.io/bnb`,
+      chainId: 56,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 1,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    base: {
+      url: `https://base.meowrpc.com`,
+      chainId: 8453,
+      accounts: [`${PROD_PRIVATE_KEY}`],
     },
   },
   etherscan: {
     apiKey: {
+      mainnet: ETHERSCAN_KEY,
+      bsc: BSCSCAN_KEY,
       bscTestnet: BSCSCAN_KEY,
       polygonMumbai: MUMBAISCAN_KEY,
       celoAlfajores: CELOSCAN_KEY,
       polygon: MUMBAISCAN_KEY,
+      base: BASESCAN_KEY,
     },
     // apiKey: BSCSCAN_KEY,
     // apiKey: MUMBAISCAN_KEY,
@@ -89,6 +117,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-alfajores.celoscan.io/api",
           browserURL: "https://alfajores.celoscan.io/",
+        },
+      },
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api-goerli.basescan.org/api",
+          browserURL: "https://basescan.org/",
         },
       },
     ],

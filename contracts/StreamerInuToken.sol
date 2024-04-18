@@ -7,8 +7,8 @@ import {IStreamerInuToken} from "./interfaces/IStreamerInuToken.sol";
 import {IStreamerInuVault} from "./interfaces/IStreamerInuVault.sol";
 /// @title StreamerInu OFT token
 contract StreamerInuToken is OFTV2, IStreamerInuToken {
-    /// @dev Stores ID of Base chain
-    uint256 public constant MINT_CHAIN_ID = 8453;
+    /// @dev Stores ID of Ethereum chain
+    uint256 public constant MINT_CHAIN_ID = 1;
     /// @dev Uses for calculation of tax amount
     uint256 public constant PRECISION = 1 * 10 ** 18;
     /// @dev Stores max tax percent which equals 40%
