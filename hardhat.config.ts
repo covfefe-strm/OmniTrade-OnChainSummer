@@ -91,6 +91,7 @@ const config: HardhatUserConfig = {
       url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 1,
       accounts: [`${PROD_PRIVATE_KEY}`],
+      gasPrice: 30000000000, //30 gwei
     },
     base: {
       url: `https://base.meowrpc.com`,

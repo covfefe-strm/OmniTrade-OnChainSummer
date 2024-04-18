@@ -1,7 +1,7 @@
 module.exports = [
-  "StreamerInu", // OFT name
-  "STRM", // OFT symbol
-  8, // shared decimals for your OFT
-  "0x66A71Dcef29A0fFBDBE3c6a460a3B5BC225Cd675", // chain endpoint address
-  "0x8F47acE6a78a70ca6e30eA87597da49345121347",
+  "0x9186D4E828b286B077253fb685dd9b8657533468",
+  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  "0x0000000000000000000000000000000000000000",
+  0,
+  "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
 ];

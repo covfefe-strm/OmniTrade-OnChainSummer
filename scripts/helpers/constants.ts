@@ -133,3 +133,16 @@ export const deployData = [
 ];
 
 export const listOfLzChainIds = [101, 184, 109, 102]; //TODO complete
+
+export const listOfTrustedSigners = [
+  {
+    ChainID: 8453, //Base
+    endpointId: 184,
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 1, //Base
+    endpointId: 101,
+    address: "0x9186D4E828b286B077253fb685dd9b8657533468",
+  },
+];
