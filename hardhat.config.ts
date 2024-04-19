@@ -52,8 +52,8 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       chainId: 1, //changed 8453 to 1 for test purposes
       forking: {
-        url: `https://neat-fluent-telescope.base-mainnet.quiknode.pro/${QUICKNODE_KEY}/`,
-        blockNumber: 13251400,
+        url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+        blockNumber: 56002963,
       },
     },
     coverage: {
@@ -67,11 +67,11 @@ const config: HardhatUserConfig = {
       chainId: 97,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
-    polygonMumbai: {
+    /* polygonMumbai: {
       url: `https://polygon-mumbai-bor.publicnode.com`,
       chainId: 80001,
       accounts: [`${DEV_PRIVATE_KEY}`],
-    },
+    }, */
     celoAlfajores: {
       url: `https://celo-alfajores.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 44787,
@@ -91,10 +91,10 @@ const config: HardhatUserConfig = {
       url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 1,
       accounts: [`${PROD_PRIVATE_KEY}`],
-      gasPrice: 30000000000, //30 gwei
+      gasPrice: 35000000000, //35 gwei
     },
     base: {
-      url: `https://base.meowrpc.com`,
+      url: `https://neat-fluent-telescope.base-mainnet.quiknode.pro/${QUICKNODE_KEY}`, //`https://base.meowrpc.com`,
       chainId: 8453,
       accounts: [`${PROD_PRIVATE_KEY}`],
     },
@@ -131,7 +131,7 @@ const config: HardhatUserConfig = {
     ],
   },
   sourcify: {
-    enabled: false,
+    enabled: true,
   },
 };
 

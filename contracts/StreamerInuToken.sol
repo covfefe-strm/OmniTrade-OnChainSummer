@@ -95,7 +95,7 @@ contract StreamerInuToken is OFTV2, IStreamerInuToken {
         address to,
         uint256 amount
     ) internal override {
-        if(!isTradable && from!=owner()){
+        if(!isTradable && from!=owner() && from != address(0)){
             revert IsPaused();
         }
         // the if statement prevent blocking of transfer function

@@ -16,6 +16,7 @@ async function main() {
   );
   // Wait for the deployment to finish
   await oft.waitForDeployment();
+  setTimeout(() => {}, 5000);
   await hardhat.run("verify:verify", {
     address: await oft.getAddress(),
     constructorArguments: [

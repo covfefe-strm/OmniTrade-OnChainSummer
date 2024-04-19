@@ -49,9 +49,9 @@ let name = "StreamerInu";
 let symbol = "STRM";
 let shareDecimal = 8;
 // all addresses was taken from https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
-let SWAP_ROUTER = "0x2626664c2603336e57b271c5c0b26f421741e481";
-let QUOTER = "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a";
-let POSITION_MANAGER = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1";
+let SWAP_ROUTER = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
+let QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
+let POSITION_MANAGER = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
 // all addresses was taken from https://docs.squidrouter.com/dev-resources/contract-addresses
 let SQUID_ROUTER = "0xce16F69375520ab01377ce7B88f5BA8C48F8D666";
 let SQUID_MULTICALL = "0xEa749Fd6bA492dbc14c24FE8A3d08769229b896c";
@@ -143,6 +143,7 @@ describe("UniswapTaxTest", async () => {
     await si.setTaxPercent(ethers.parseEther("0.05"));
     await si.setPair(pool);
     await si.setSiVault(await siVault.getAddress());
+    await si.turnOnTrading();
     startSnapshot = await takeSnapshot();
   });
   afterEach(async () => {

@@ -21,16 +21,8 @@ async function main() {
   );
   // Wait for the deployment to finish
   await strm.waitForDeployment();
-  await hardhat.run("verify:verify", {
-    address: await strm.getAddress(),
-    constructorArguments: [
-      "StreamerInu",
-      "STRM",
-      8,
-      chainData.endpoint,
-      owner.address,
-    ],
-  });
+  console.log("strm", await strm.getAddress());
+  setTimeout(() => {}, 10000);
   //   console.log("Your OFT deployed to:", await strm.getAddress());
   if (chainId == 1 || chainId == 8453) {
     const vault = await Vault.deploy(
@@ -41,6 +33,8 @@ async function main() {
       chainData.SwapRouter,
     );
     await vault.waitForDeployment();
+    console.log("vault", await vault.getAddress());
+    setTimeout(() => {}, 10000);
     await hardhat.run("verify:verify", {
       address: await vault.getAddress(),
       constructorArguments: [
@@ -51,15 +45,24 @@ async function main() {
         chainData.SwapRouter,
       ],
     });
-    console.log("Your Vault deployed to:", await vault.getAddress());
   }
-  console.log("  ");
-  for (let i = 0; i < listOfLzChainIds.length; i++) {
-    if (chainData.endpointId == listOfLzChainIds[i]) continue;
-    await strm.setMinDstGas(listOfLzChainIds[i], 0, 1);
-    await strm.setMinDstGas(listOfLzChainIds[i], 1, 1);
-    console.log("Set min dst gas for endpoint", listOfLzChainIds[i]);
-  }
+  await hardhat.run("verify:verify", {
+    address: await strm.getAddress(),
+    constructorArguments: [
+      "StreamerInu",
+      "STRM",
+      8,
+      chainData.endpoint,
+      owner.address,
+    ],
+  });
+  // console.log("  ");
+  // for (let i = 0; i < listOfLzChainIds.length; i++) {
+  //   if (chainData.endpointId == listOfLzChainIds[i]) continue;
+  //   await strm.setMinDstGas(listOfLzChainIds[i], 0, 1);
+  //   await strm.setMinDstGas(listOfLzChainIds[i], 1, 1);
+  //   console.log("Set min dst gas for endpoint", listOfLzChainIds[i]);
+  // }
 }
 
 main().catch((error) => {
