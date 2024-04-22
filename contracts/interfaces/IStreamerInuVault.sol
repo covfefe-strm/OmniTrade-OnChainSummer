@@ -12,6 +12,8 @@ interface IStreamerInuVault {
     error AccessDenied();
     /// @dev Throws if IERC20 approve function returns false
     error ApproveFailed();
+    /// @dev Throws if IERC20 transfer failed
+    error TransferFailed();
     /// @dev Throws if contract doesn't have enough balance of token\
     /// to make transfer or swap action
     error NotEnoughBalance();

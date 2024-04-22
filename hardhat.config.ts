@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       chainId: 1, //changed 8453 to 1 for test purposes
       forking: {
         url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        blockNumber: 56002963,
+        blockNumber: 56001749,
       },
     },
     coverage: {
