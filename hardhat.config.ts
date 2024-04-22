@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       chainId: 1, //changed 8453 to 1 for test purposes
       forking: {
         url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        blockNumber: 56001749,
+        blockNumber: 56001748,
       },
     },
     coverage: {
@@ -124,14 +124,14 @@ const config: HardhatUserConfig = {
         network: "base",
         chainId: 8453,
         urls: {
-          apiURL: "https://api-goerli.basescan.org/api",
+          apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org/",
         },
       },
     ],
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
 };
 
