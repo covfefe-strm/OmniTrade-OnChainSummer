@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 import {INonfungiblePositionManager} from "./interfaces/uniswapV3/INonfungiblePositionManager.sol";
-
-contract NonfungiblePositionManagerMock is INonfungiblePositionManager {
+import {IMulticall} from "@uniswap/v3-periphery/contracts/interfaces/IMulticall.sol";
+contract NonfungiblePositionManagerMock is IMulticall, INonfungiblePositionManager {
     uint256 public counter;
     function positions(
         uint256 tokenId
@@ -24,7 +24,10 @@ contract NonfungiblePositionManagerMock is INonfungiblePositionManager {
             uint128 tokensOwed1
         )
     {}
-
+    function multicall(bytes[] calldata data) public payable override returns (bytes[] memory results) {
+        counter++;
+    }
+    
     function mint(
         MintParams calldata params
     )

@@ -61,6 +61,11 @@ const TOKEN_OWNER = "0xC742385d01d590D7391E11Fe95E970B915203C18";
 // all addresses was taken from https://docs.squidrouter.com/dev-resources/contract-addresses
 const SQUID_ROUTER = "0xce16F69375520ab01377ce7B88f5BA8C48F8D666";
 const SQUID_MULTICALL = "0xEa749Fd6bA492dbc14c24FE8A3d08769229b896c";
+
+const poolCreationCalldata =
+  "0x13ead56200000000000000000000000023ac304e24a6c0ffbab0d8b99f38c0b1fc3a724e000000000000000000000000cf3a1d88414a0b5215b4ff888e2312cee3be176e00000000000000000000000000000000000000000000000000000000000001f40000000000000000000000000000000000000024093cd163faf86ddcc4bd842c";
+const addingLiquidityCalldata =
+  "0x8831645600000000000000000000000023ac304e24a6c0ffbab0d8b99f38c0b1fc3a724e000000000000000000000000cf3a1d88414a0b5215b4ff888e2312cee3be176e00000000000000000000000000000000000000000000000000000000000001f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2761a00000000000000000000000000000000000000000000000000000000000d89e60000000000000000000000000000000000000000000000006ade0ae4d067068700000000000000000000000000000000000000000000021e19e0c9bab23ffbbb0000000000000000000000000000000000000000000000006a99e7222bfd16c100000000000000000000000000000000000000000000021cbe7fa532cc5772e1000000000000000000000000c742385d01d590d7391e11fe95e970b915203c1800000000000000000000000000000000000000000000000000000000662242b6";
 let pool: any;
 describe("UniswapTaxTest", async () => {
   before(async () => {
@@ -117,39 +122,42 @@ describe("UniswapTaxTest", async () => {
         await usdc.getAddress(),
         await strm.getAddress(),
         500,
-        2855072739969992044888350098476n,
+        79228162514264337593543950336n,
       )
     )[0];
     await positionManager.createAndInitializePoolIfNecessary(
       await usdc.getAddress(),
       await strm.getAddress(),
       500,
-      2855072739969992044888350098476n,
+      79228162514264337593543950336n,
     );
     let amount = ethers.parseEther("10000");
+    let amountToAdd = ethers.parseEther("1000");
     console.log("pool", pool);
     await usdc.connect(tokenOwner).transfer(owner.address, amount);
     await strm.connect(tokenOwner).transfer(owner.address, amount);
+    // transfer ownership of strm ot owner address
+    await strm.connect(tokenOwner).transferOwnership(owner.address);
     await usdc.approve(await positionManager.getAddress(), amount);
     await strm.approve(await positionManager.getAddress(), amount);
-    console.log("usdc owner balance", await usdc.balanceOf(owner.address));
-    console.log("strm owner balance", await strm.balanceOf(owner.address));
-    console.log("time", await time.latest());
     let mintParams = {
       token0: await usdc.getAddress(),
       token1: await strm.getAddress(),
       fee: 500,
       tickLower: -887270,
       tickUpper: 887270,
-      amount0Desired: 7700604390715360903n,
-      amount1Desired: 9999999999999999998907n,
-      amount0Min: 7681424773410002625n,
-      amount1Min: 9974968671630001664737n,
+      amount0Desired: amountToAdd,
+      amount1Desired: amountToAdd,
+      amount0Min: 0,
+      amount1Min: 0,
       recipient: owner.address,
       deadline: 1713521334,
     };
-    // await positionManager.mint.staticCallResult(mintParams);
+    await positionManager.mint.staticCallResult(mintParams);
     await positionManager.mint(mintParams);
+    // await positionManager
+    //   .connect(tokenOwner)
+    //   .multicall([poolCreationCalldata, addingLiquidityCalldata]);
     siVault = await vaultFactory.deploy(
       await strm.getAddress(),
       await usdc.getAddress(),
@@ -162,35 +170,37 @@ describe("UniswapTaxTest", async () => {
       SQUID_ROUTER,
       SQUID_MULTICALL,
     );
-    await strm.setTaxPercent(ethers.parseEther("0.4"));
+    await strm.setTaxPercent(ethers.parseEther("0.04"));
     await strm.setPair(pool);
     await strm.setSiVault(await siVault.getAddress());
     // await si.turnOnTrading();
     startSnapshot = await takeSnapshot();
   });
-  // afterEach(async () => {
-  //   await startSnapshot.restore();
-  // });
+  afterEach(async () => {
+    await startSnapshot.restore();
+  });
   after(async () => {
     await originalState.restore();
   });
   describe("swap tax", async () => {
     it("Must revert to trade if trading is off", async () => {
-      await usdc.approve(SWAP_ROUTER, 1000000000000000n);
+      let amount = ethers.parseEther("1");
+      await usdc.approve(SWAP_ROUTER, amount);
       let swapParams = {
         tokenIn: await usdc.getAddress(),
         tokenOut: await strm.getAddress(),
         fee: 500,
         recipient: owner.address,
-        amountIn: 1000000000000000n,
+        amountIn: amount,
         amountOutMinimum: 0,
         sqrtPriceLimitX96: 0,
       };
-      await expect(
-        swapRouter.exactInputSingle(swapParams),
-      ).to.be.revertedWithCustomError(strm, "IsPaused");
+      await expect(swapRouter.exactInputSingle(swapParams)).to.be.revertedWith(
+        "TF",
+      );
     });
     it("Must transfer tax to siVault contract", async () => {
+      await strm.turnOnTrading();
       let eth1 = ethers.parseEther("1");
       await usdc.approve(await swapRouter.getAddress(), eth1);
       let exactInputSingleParams = {
@@ -205,19 +215,20 @@ describe("UniswapTaxTest", async () => {
       };
       let swapTx = await swapRouter.exactInputSingle(exactInputSingleParams);
       expect(await siVault.lastSiBalance()).to.be.closeTo(
-        ethers.parseEther("0.05"),
+        ethers.parseEther("0.04"),
         ethers.parseEther("0.001"),
       );
       expect(await strm.balanceOf(await siVault.getAddress())).to.be.closeTo(
-        ethers.parseEther("0.05"),
+        ethers.parseEther("0.04"),
         ethers.parseEther("0.001"),
       );
       expect(await strm.balanceOf(user1.address)).to.be.closeTo(
-        ethers.parseEther("0.95"),
+        ethers.parseEther("0.96"),
         ethers.parseEther("0.01"),
       );
     });
     it("Must swap taxes to usdc", async () => {
+      await strm.turnOnTrading();
       let eth1 = ethers.parseEther("1");
       await usdc.approve(await swapRouter.getAddress(), eth1);
       let exactInputSingleParams = {
@@ -233,8 +244,8 @@ describe("UniswapTaxTest", async () => {
       await swapRouter.exactInputSingle(exactInputSingleParams);
       let tx = await siVault.sellSi(0, taxRecipient.address, 0);
       expect(await usdc.balanceOf(taxRecipient.address)).to.be.closeTo(
-        ethers.parseEther("0.049"),
-        ethers.parseEther("0.002"),
+        ethers.parseEther("0.039"),
+        ethers.parseEther("0.001"),
       );
     });
   });

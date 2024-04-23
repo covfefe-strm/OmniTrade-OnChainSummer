@@ -37,8 +37,8 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     /// @notice stores address of STRM token
     /// @return address of STRM token
     address public si;
-    /// @notice stores address of STRM token
-    /// @return address of STRM token
+    /// @notice stores address of STRM Vault contract
+    /// @return address of STRM Vault contract
     address public siVault;
     /// @notice stores address of SquidRouter contract
     /// @return address of SquidRouter token
