@@ -206,13 +206,15 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
     /// @notice execute swap of STRM token to another token and
     /// transfer to destination chain by using SquidRouter SCs
     /// @param _sqdCallsSourceChain array of Calls which describe instruction for swap
-    /// @param _destinationChain sfsdf
-    /// @param _destinationAddress fsdfsdf
+    /// @param _bridgedTokenSymbol symbol of token for bridge, by default axlUSDC
+    /// @param _destinationChain name of destination chain
+    /// @param _destinationAddress recipient of axelar call, should be SquidRouter on destination chain
     /// @param _payload payload which describe instruction to execute on destination chain
     /// @param _refundAddress recipient of gas refund
     /// @param _amount amount of STRM tokens to swap
     function sellSI(
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
+        string calldata _bridgedTokenSymbol,
         string calldata _destinationChain,
         string calldata _destinationAddress,
         bytes calldata _payload,
@@ -237,7 +239,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
             _si,
             amountToSell,
             _sqdCallsSourceChain,
-            BRIDER_TOKEN_SYMBOL,
+            _bridgedTokenSymbol,
             _destinationChain,
             _destinationAddress,
             _payload,

@@ -437,6 +437,7 @@ describe("StreamerInuRouter", async () => {
       await expect(
         siRouter.sellSI(
           [],
+          "axlUSDC",
           "Polygon",
           owner.address,
           "0x",
@@ -451,6 +452,7 @@ describe("StreamerInuRouter", async () => {
           .connect(user1)
           .sellSI(
             [],
+            "axlUSDC",
             "Polygon",
             owner.address,
             "0x",
@@ -463,7 +465,15 @@ describe("StreamerInuRouter", async () => {
     it("must call callBridgeCall correctly", async () => {
       let tx = await siRouter
         .connect(user1)
-        .sellSI([], "Polygon", owner.address, "0x", owner.address, eth1);
+        .sellSI(
+          [],
+          "axlUSDC",
+          "Polygon",
+          owner.address,
+          "0x",
+          owner.address,
+          eth1,
+        );
       expect(tx)
         .to.be.emit(si, "Approval")
         .withArgs(
@@ -479,7 +489,15 @@ describe("StreamerInuRouter", async () => {
       await siRouter.setSIVault(await vault.getAddress());
       let tx = await siRouter
         .connect(user1)
-        .sellSI([], "Polygon", owner.address, "0x", owner.address, eth1);
+        .sellSI(
+          [],
+          "axlUSDC",
+          "Polygon",
+          owner.address,
+          "0x",
+          owner.address,
+          eth1,
+        );
       expect(await vault.lastSiBalance()).to.be.closeTo(
         ethers.parseEther("0.002"),
         ethers.parseEther("0.000001"),

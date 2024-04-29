@@ -55,6 +55,7 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
 
     function sellSI(
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
+        string calldata _bridgedTokenSymbol,
         string calldata _destinationChain,
         string calldata _destinationAddress,
         bytes calldata _payload,

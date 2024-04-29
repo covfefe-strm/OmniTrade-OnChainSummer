@@ -48,12 +48,12 @@ async function main() {
   const oftBSC: MyOFT = (await OFTFactoryBSC.attach(STR_BSC)) as MyOFT;
   const oftMumbai: MyOFT = (await OFTFactoryMumbai.attach(STR_MUMBAI)) as MyOFT; */
   let toAddress = ethers.zeroPadValue(
-    "0xC742385d01d590D7391E11Fe95E970B915203C18",
+    "0x23Ac304E24a6c0FFBaB0d8b99f38c0b1FC3A724E",
     32,
   );
   console.log("toAddress", toAddress);
   // gas cost of the function "onOFTReceived" = ~83000 gas
-  let amountOfGas = 105000; // total amoutn of gas for execution on destination chain
+  let amountOfGas = 360000; // total amoutn of gas for execution on destination chain
   let postHookGas = 85000; // amount of gas for post hook transaction execution
   const adapterParams = ethers.solidityPacked(
     ["uint16", "uint256"],
