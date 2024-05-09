@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract SwapRouterMock is ISwapRouter {
+    address public factory;
     uint256 public counter;
     function uniswapV3SwapCallback(
         int256 amount0Delta,

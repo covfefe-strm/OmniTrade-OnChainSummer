@@ -98,6 +98,11 @@ const config: HardhatUserConfig = {
       chainId: 8453,
       accounts: [`${PROD_PRIVATE_KEY}`],
     },
+    baseSepolia: {
+      url: "https://public.stackup.sh/api/v1/node/base-sepolia",
+      chainId: 84532,
+      accounts: [`${DEV_PRIVATE_KEY}`],
+    },
   },
   etherscan: {
     apiKey: {
@@ -108,6 +113,7 @@ const config: HardhatUserConfig = {
       celoAlfajores: CELOSCAN_KEY,
       polygon: MUMBAISCAN_KEY,
       base: BASESCAN_KEY,
+      baseSepolia: BASESCAN_KEY,
     },
     // apiKey: BSCSCAN_KEY,
     // apiKey: MUMBAISCAN_KEY,
@@ -126,6 +132,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org/",
+        },
+      },
+      {
+        network: "baseSepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org/",
         },
       },
     ],

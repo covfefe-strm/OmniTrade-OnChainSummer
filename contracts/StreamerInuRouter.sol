@@ -8,7 +8,6 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {ISquidRouter} from "./interfaces/squidRouter/ISquidRouter.sol";
 import {IStreamerInuRouter, ISquidMulticall} from "./interfaces/IStreamerInuRouter.sol";
 import {IStreamerInuVault} from "contracts/interfaces/IStreamerInuVault.sol";
-string constant BRIDER_TOKEN_SYMBOL = "aUSDC";
 uint256 constant TAX_PERCENT = 2 * 10 ** 15; // 0.2%
 uint256 constant TOTAL_PERCENT = 1 * 10 ** 18; // 100%
 /*  _____ _                                    _____             _____             _            
@@ -110,7 +109,7 @@ contract StreamerInuRouter is IStreamerInuRouter, Ownable, ReentrancyGuard {
         }
         siVault = _siVault;
     }
-
+    
     /// FUNCTIONS FOR CONTRACT CALLS
 
     /// @notice send received STRM token to recipient on the source chain

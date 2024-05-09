@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 import {IQuoterV2} from "@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol";
-
 contract QuoterV2Mock is IQuoterV2 {
     uint256 public counter;
+    address public factory;
+    address public immutable WETH9;
+
+    constructor(address weth9){
+        WETH9 = weth9;
+    }
+
     function quoteExactInput(
         bytes memory path,
         uint256 amountIn
