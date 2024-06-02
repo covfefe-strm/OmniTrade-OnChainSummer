@@ -18,6 +18,9 @@ const {
   MUMBAISCAN_KEY,
   BASESCAN_KEY,
   CELOSCAN_KEY,
+  ARBISCAN_KEY,
+  FANTOMSCAN_KEY,
+  OPSCAN_KEY,
   INFURA_API_KEY,
   QUICKNODE_KEY,
   COINMARKETCAP_KEY,
@@ -67,14 +70,24 @@ const config: HardhatUserConfig = {
       chainId: 97,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
-    /* polygonMumbai: {
-      url: `https://polygon-mumbai-bor.publicnode.com`,
-      chainId: 80001,
-      accounts: [`${DEV_PRIVATE_KEY}`],
-    }, */
     celoAlfajores: {
       url: `https://celo-alfajores.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 44787,
+      accounts: [`${DEV_PRIVATE_KEY}`],
+    },
+    avalanche: {
+      url: `https://avalanche-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 43114,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    arbitrum: {
+      url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 42161,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    celo: {
+      url: `https://celo-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 42220,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
     polygon: {
@@ -85,6 +98,7 @@ const config: HardhatUserConfig = {
     bsc: {
       url: `https://1rpc.io/bnb`,
       chainId: 56,
+      gasPrice: 10000000000,
       accounts: [`${PROD_PRIVATE_KEY}`],
     },
     mainnet: {
@@ -93,9 +107,19 @@ const config: HardhatUserConfig = {
       accounts: [`${PROD_PRIVATE_KEY}`],
       gasPrice: 35000000000, //35 gwei
     },
+    optimisticEthereum: {
+      url: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      chainId: 10,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
     base: {
-      url: `https://neat-fluent-telescope.base-mainnet.quiknode.pro/${QUICKNODE_KEY}`, //`https://base.meowrpc.com`,
+      url: `https://base.meowrpc.com`,
       chainId: 8453,
+      accounts: [`${PROD_PRIVATE_KEY}`],
+    },
+    fantom: {
+      url: `https://rpcapi.fantom.network`,
+      chainId: 250,
       accounts: [`${PROD_PRIVATE_KEY}`],
     },
     baseSepolia: {
@@ -111,13 +135,34 @@ const config: HardhatUserConfig = {
       bscTestnet: BSCSCAN_KEY,
       polygonMumbai: MUMBAISCAN_KEY,
       celoAlfajores: CELOSCAN_KEY,
+      celo: CELOSCAN_KEY,
+      avalanche: `${DEV_PRIVATE_KEY}`,
+      arbitrum: ARBISCAN_KEY,
       polygon: MUMBAISCAN_KEY,
       base: BASESCAN_KEY,
       baseSepolia: BASESCAN_KEY,
+      optimisticEthereum: OPSCAN_KEY,
+      fantom: FANTOMSCAN_KEY,
     },
     // apiKey: BSCSCAN_KEY,
     // apiKey: MUMBAISCAN_KEY,
     customChains: [
+      {
+        network: "arbitrum",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://arbiscan.io/",
+        },
+      },
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io/",
+        },
+      },
       {
         network: "celoAlfajores",
         chainId: 44787,
@@ -140,6 +185,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
           browserURL: "https://sepolia.basescan.org/",
+        },
+      },
+      {
+        network: "fantom",
+        chainId: 250,
+        urls: {
+          apiURL: "https://api.ftmscan.com/api",
+          browserURL: "https://ftmscan.com/",
         },
       },
     ],
