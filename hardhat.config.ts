@@ -133,7 +133,7 @@ const config: HardhatUserConfig = {
       accounts: [`${PROD_PRIVATE_KEY}`],
     },
     moonbeam: {
-      url: `https://1rpc.io/glmr`,
+      url: `https://moonbeam-rpc.publicnode.com`,
       chainId: 1284,
       accounts: [`${PROD_PRIVATE_KEY}`],
     },

@@ -200,13 +200,63 @@ export const listOfLzChainIds = [101, 184, 109, 102]; //TODO complete
 
 export const listOfTrustedSigners = [
   {
+    ChainID: 1, //Ethereum
+    endpointId: 101,
+    address: "0x8162b5Bc8F651007cC38a09F557BaB2Bf4CEFb5b",
+  },
+  {
     ChainID: 8453, //Base
     endpointId: 184,
+    address: "0xfE4717F60Ac5603dC6863700Cd8ECF805908688D",
+  },
+  {
+    ChainID: 137, //Polygon
+    endpointId: 109,
+    address: "0x83fB78a52e67F4e1529073992fAe071aB545A9b4",
+  },
+  {
+    ChainID: 56, //Bsc
+    endpointId: 102,
+    address: "0x9186D4E828b286B077253fb685dd9b8657533468",
+  },
+  {
+    ChainID: 42161,
+    endpointId: 110, //Arb
     address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
   },
   {
-    ChainID: 1, //Base
-    endpointId: 101,
-    address: "0x9186D4E828b286B077253fb685dd9b8657533468",
+    ChainID: 43114,
+    endpointId: 106, //Avx
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 10,
+    endpointId: 111, //Op
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 250,
+    endpointId: 112, //Fantom
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 1284,
+    endpointId: 126, //Moonbeam
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 5000,
+    endpointId: 181, //Mantle
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 59144,
+    endpointId: 183, //Linea
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
+  },
+  {
+    ChainID: 534352,
+    endpointId: 214, //Scroll
+    address: "0x53e2dfe5EbAb390a8f800A905479049f5B21a211",
   },
 ];
