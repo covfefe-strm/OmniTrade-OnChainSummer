@@ -78,12 +78,12 @@ export const abi = [
     inputs: [
       {
         components: [
-          { internalType: "bytes", name: "path", type: "bytes" },
-          { internalType: "address", name: "recipient", type: "address" },
-          { internalType: "uint256", name: "amountIn", type: "uint256" },
+          { internalType: "bytes", name: "path", type: "bytes" }, // 1
+          { internalType: "address", name: "recipient", type: "address" }, // 2
+          { internalType: "uint256", name: "amountIn", type: "uint256" }, // 3
           {
             internalType: "uint256",
-            name: "amountOutMinimum",
+            name: "amountOutMinimum", // 4
             type: "uint256",
           },
         ],
