@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IStreamerInuRouter} from "../interfaces/IStreamerInuRouter.sol";
+
+import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/interfaces/IOFTReceiverV2.sol";
 
 contract OftMock is ERC20 {
     struct LzCallParams {
@@ -56,7 +57,7 @@ contract OftMock is ERC20 {
         uint _amount,
         bytes calldata _payload
     ) external payable {
-        IStreamerInuRouter(target).onOFTReceived(
+        IOFTReceiverV2(target).onOFTReceived(
             0,
             "0x",
             0,

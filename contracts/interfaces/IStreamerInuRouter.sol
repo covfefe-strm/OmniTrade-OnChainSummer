@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 import {ISquidMulticall} from "./squidRouter/ISquidMulticall.sol";
-import {IOFTReceiverV2} from "@layerzerolabs/solidity-examples/contracts/token/oft/v2/interfaces/IOFTReceiverV2.sol";
+import {SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 
-interface IStreamerInuRouter is IOFTReceiverV2 {
+interface IStreamerInuRouter {
+    enum OftVersion{
+        OFTV1, OFTV2
+    }
     /// @dev Emits when the contract receive STRM token after cross chain transfer
     event OFTTokensReceived(address indexed recipient, uint256 amount);
+    /// @dev Emits when the contract receive STRM V2 token after cross chain transfer
+    event OFTV2TokensReceived(address indexed recipient, uint256 amount);
     /// @dev Emits when sender deposited native token;
     event NativeTokenDeposited(address indexed recipient, uint256 amount);
     /// @dev Emits when user withdraw native token;
@@ -14,6 +19,10 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     error NotSquidMultical();
     /// @dev Throws if sender isn't STRM token
     error NotSIToken();
+    /// @dev Throws if sender isn't LayerZero endpoint
+    error NotLzEndpointToken();
+    /// @dev Throws if composed message isn't correct
+    error InvalidPayload();
     /// @dev Throws if user or owner pass zero address as param
     error ZeroAddress();
     /// @dev Throws if user or owner pass zero value as param
@@ -30,6 +39,10 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
     error TransferFailed();
     /// @dev Throws if transfer of naitve token failed
     error NativeTransferFailed();
+    /// @dev Throws if user tried to call function for another OFT version
+    error IncorrectOFTVersion();
+    /// @dev Throws if user pass fee struct with zero native value.
+    error InvalidPassedFee();
 
     function deposit(address _recipient) external payable;
 
@@ -37,10 +50,13 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
 
     function setSquidRouter(address _squidRouter) external;
 
+    function setLzEndpoint(address _endpoint) external;
+
     function setSIVault(address _siVault) external;
 
     function sendOFTTokenToOwner(
         uint16 _dstChainId,
+        uint256 _amount,
         bytes32 _toAddress,
         address _refundAddress,
         bytes memory _adapterParams
@@ -63,10 +79,14 @@ interface IStreamerInuRouter is IOFTReceiverV2 {
         uint256 _amount
     ) external payable;
 
-    function getRequiredValueToCoverOFTTransfer(
+    function getRequiredValueToCoverOFTTransferV1(
         uint16 _dstChainId,
         bytes32 _toAddress,
         uint256 _amount,
         bytes memory _adapterParams
+    ) external view returns (uint256);
+
+    function getRequiredValueToCoverOFTTransferV2(
+        SendParam memory _sendParam
     ) external view returns (uint256);
 }
