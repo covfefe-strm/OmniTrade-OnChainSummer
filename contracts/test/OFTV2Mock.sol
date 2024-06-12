@@ -12,4 +12,5 @@ contract OFTV2Mock is OFT {
     ) OFT(_name, _symbol, _lzEndpoint, _delegate) {
         transferOwnership(_delegate);
     }
+
 }

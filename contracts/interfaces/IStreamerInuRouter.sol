@@ -2,10 +2,12 @@
 pragma solidity 0.8.23;
 import {ISquidMulticall} from "./squidRouter/ISquidMulticall.sol";
 import {SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-
+import {MessagingFee } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 interface IStreamerInuRouter {
     enum OftVersion{
-        OFTV1, OFTV2
+        EMPTY,
+        OFTV1,
+        OFTV2
     }
     /// @dev Emits when the contract receive STRM token after cross chain transfer
     event OFTTokensReceived(address indexed recipient, uint256 amount);
@@ -43,8 +45,10 @@ interface IStreamerInuRouter {
     error IncorrectOFTVersion();
     /// @dev Throws if user pass fee struct with zero native value.
     error InvalidPassedFee();
-
-    function deposit(address _recipient) external payable;
+    /// @dev Throws if owner set vault contract to not active OFT.
+    error NotActiveOFT();
+    /// @dev Throws if user tries to call function of wrong OFT version
+    error VersionMismatch();
 
     function setSquidMulticall(address _squidMulticall) external;
 
@@ -52,9 +56,10 @@ interface IStreamerInuRouter {
 
     function setLzEndpoint(address _endpoint) external;
 
-    function setSIVault(address _siVault) external;
+    function setSIVault(address _oft,address _siVault) external;
 
     function sendOFTTokenToOwner(
+        address _oft,
         uint16 _dstChainId,
         uint256 _amount,
         bytes32 _toAddress,
@@ -62,14 +67,24 @@ interface IStreamerInuRouter {
         bytes memory _adapterParams
     ) external payable;
 
+    function sendOFTTokenToOwner(
+        address _oft,
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable;
+
+    function deposit(address _recipient) external payable;
+
     function withdrawNative(
         uint256 _amount,
         address payable _recipient
     ) external;
 
-    function withdrawSI(uint256 _amount, address _recipient) external;
+    function withdrawOFT(address _oft,uint256 _amount, address _recipient) external;
 
     function sellSI(
+        address _oft,
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
         string calldata _bridgedTokenSymbol,
         string calldata _destinationChain,
@@ -80,6 +95,7 @@ interface IStreamerInuRouter {
     ) external payable;
 
     function getRequiredValueToCoverOFTTransferV1(
+        address _oft,
         uint16 _dstChainId,
         bytes32 _toAddress,
         uint256 _amount,
@@ -87,6 +103,7 @@ interface IStreamerInuRouter {
     ) external view returns (uint256);
 
     function getRequiredValueToCoverOFTTransferV2(
-        SendParam memory _sendParam
+        address _oft,
+        SendParam calldata _sendParam
     ) external view returns (uint256);
 }

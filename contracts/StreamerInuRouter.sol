@@ -28,27 +28,25 @@ uint256 constant TOTAL_PERCENT = 1 * 10 ** 18; // 100%
 /// @notice The purpose of the contract send and receive OFT StreamInu token for safe crosschain trading.
 contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    /// oft -> holder -> amount
     /// @notice stores amount of STRM tokens reserved for sender or recipient
     /// @dev address of sender or recipient => amount of STRM token
-    mapping(address => uint256) public reservedTokens;
+    mapping(address => mapping(address => uint256)) public reservedTokens;
     /// @notice stores amount of reserved native tokens which will be used to cover OFT transfer
     /// @dev address of sender or recipient => amount of researved native tokens
     mapping(address => uint256) public nativeBalance;
     /// @notice stores total amount of reserved STRM tokens
     /// @return total amount of reserved tokens
-    uint256 public totalLocked;
+    mapping(address => uint256) public totalLocked;
     /// @notice stores total amount of reserved native tokens
     /// @return total amount of reserved tokens
     uint256 public totalNativeLocked;
-    /// @notice stores address of STRM token
-    /// @return address of STRM token
-    address public si;
-    /// @notice stores version of si OFT token
-    /// @return version of si OFT token
-    OftVersion public version;
-    /// @notice stores address of STRM Vault contract
-    /// @return address of STRM Vault contract
-    address public siVault;
+    /// oft -> version
+    /// @notice stores version of OFT tokens
+    mapping(address => OftVersion) public oftsVersion;
+    /// oft -> vault
+    /// @notice stores Vault address for OFT token;
+    mapping(address => address) public vaults;
     /// @notice stores address of LayerZero endpoint to support receiving messages from OFT V2
     /// @return address of LayerZero endpoint
     address public endpoint;
@@ -66,25 +64,23 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         _;
     }
 
-    modifier onlySIToken() {
-        if (_msgSender() != si) {
-            revert NotSIToken();
+    modifier oftVersionCheck(OftVersion _version, address _oft) {
+        if (oftsVersion[_oft] == _version) {
+            revert VersionMismatch();
         }
         _;
     }
 
-    constructor(address _si, OftVersion _version, address _squidRouter, address _squidMulticall) {
-        if (
-            _squidMulticall == address(0) ||
-            _squidRouter == address(0) ||
-            _si == address(0)
-        ) {
-            revert ZeroAddress();
+    modifier onlyActiveOFT(address _oft){
+        if (!_isOftActive(_oft)) {
+            revert NotActiveOFT();
         }
+        _;
+    }
+
+    constructor(address _squidRouter, address _squidMulticall) {
         squidMulticall = _squidMulticall;
         squidRouter = _squidRouter;
-        si = _si;
-        version = _version;
     }
 
     //  ADMIN FUNCTIONS
@@ -124,11 +120,13 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     /// @dev only Owner can call the function
     /// @dev new address can't be equal to zero address
     /// @param _siVault new address of StreamerInuVault contract
-    function setSIVault(address _siVault) external override onlyOwner {
-        if (_siVault == address(0)) {
+    function setSIVault(address _oft,address _siVault) external override onlyOwner onlyActiveOFT(_oft) {
+        if (_siVault == address(0) || _oft == address(0)) {
             revert ZeroAddress();
         }
-        siVault = _siVault;
+        // TODO add check for vault.si == _oft
+        // TODO update IStreamerInuVault interface
+        vaults[_oft] = _siVault;
     }
     
     /// FUNCTIONS FOR CONTRACT CALLS
@@ -139,20 +137,38 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     /// @param _toAddress address of tokens recipient
     /// @param _refundAddress recipient of gas refund
     function sendOFTTokenToOwner(
+        address _oft,
         uint16 _dstChainId,
         uint256 _amount,
         bytes32 _toAddress,
         address _refundAddress,
         bytes memory _adapterParams
-    ) external payable override onlySquidMulticall {
-        IERC20(si).safeTransferFrom(_msgSender(),address(this),_amount);
-        uint256 amountToTransfer = _sendTaxes(_amount);
+    ) external payable override onlySquidMulticall oftVersionCheck(OftVersion.OFTV1,_oft) {
+        IERC20(_oft).safeTransferFrom(_msgSender(),address(this),_amount);
+        uint256 amountToTransfer = _sendTaxes(_oft,_amount);
         _sendOFTV1(
+            _oft,
             _dstChainId,
             _toAddress,
             _refundAddress,
             amountToTransfer,
             _adapterParams
+        );
+    }
+
+    function sendOFTTokenToOwner(
+        address _oft,
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable override onlySquidMulticall oftVersionCheck(OftVersion.OFTV2,_oft) {
+        IERC20(_oft).safeTransferFrom(_msgSender(),address(this),_sendParam.amountLD);
+        uint256 amountToTransfer = _sendTaxes(_oft,_sendParam.amountLD);
+        _sendOFTV2(
+            _oft,
+            _sendParam,
+            _fee,
+            _refundAddress
         );
     }
 
@@ -169,12 +185,12 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         bytes32 _from,
         uint _amount, // solhint-disable-line explicit-types
         bytes calldata _payload
-    ) external override onlySIToken {
+    ) external override onlyActiveOFT(_msgSender()){
         address recipient = _payload.length < 32
             ? address(uint160(uint256(_from)))
             : abi.decode(_payload, (address));
-        reservedTokens[recipient] += _amount;
-        totalLocked += _amount;
+        reservedTokens[_msgSender()][recipient] += _amount;
+        totalLocked[_msgSender()] += _amount;
         emit OFTTokensReceived(recipient, _amount);
     }
 
@@ -184,15 +200,13 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         bytes calldata _message,
         address /*Executor*/,
         bytes calldata /*Executor Data*/
-    ) external payable override {
-        if (_oApp != si) {
-            revert NotSIToken();
-        }
+    ) external payable override onlyActiveOFT(_oApp){
         if (_msgSender() != endpoint) {
             revert NotLzEndpointToken();
         }
         // Extract the composed message from the delivered message using the MsgCodec
         bytes memory _composeMsgContent = OFTComposeMsgCodec.composeMsg(_message);
+        uint256 _amountToReserve = OFTComposeMsgCodec.amountLD(_message);
         // TODO test decode of composed message
         if(_composeMsgContent.length < 32){
             revert InvalidPayload();
@@ -200,10 +214,10 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         // Decode the composed message, in this case, the uint256 amount and address receiver for the token swap
         // To make sure that user haven't manipulate with value of "_amountToReserve" 
         // we need to overrife OFT to add the value automatically
-        (uint256 _amountToReserve, address _receiver) = abi.decode(_composeMsgContent, (uint256, address));
+        (address _receiver) = abi.decode(_composeMsgContent, (address));
 
-        reservedTokens[_receiver] += _amountToReserve;
-        totalLocked += _amountToReserve;
+        reservedTokens[_oApp][_receiver] += _amountToReserve;
+        totalLocked[_oApp] += _amountToReserve;
         emit OFTV2TokensReceived(_receiver, _amountToReserve);
     }
 
@@ -234,17 +248,17 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         _sendNative(_recipient, _amount);
     }
 
-    function withdrawSI(uint256 _amount, address _recipient) external override {
-        uint256 reservedBalance = reservedTokens[_msgSender()];
+    function withdrawOFT(address _oft,uint256 _amount, address _recipient) external override onlyActiveOFT(_oft){
+        uint256 reservedBalance = reservedTokens[_oft][_msgSender()];
         if (reservedBalance == 0 || _amount > reservedBalance) {
             revert NotEnoughBalance();
         }
         if (_recipient == address(0)) {
             revert ZeroAddress();
         }
-        reservedTokens[_msgSender()] = reservedBalance - _amount;
-        totalLocked -= _amount;
-        if (!IERC20(si).transfer(_recipient, _amount)) {
+        reservedTokens[_oft][_msgSender()] = reservedBalance - _amount;
+        totalLocked[_oft] -= _amount;
+        if (!IERC20(_oft).transfer(_recipient, _amount)) {
             revert TransferFailed();
         }
     }
@@ -259,6 +273,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     /// @param _refundAddress recipient of gas refund
     /// @param _amount amount of STRM tokens to swap
     function sellSI(
+        address _oft,
         ISquidMulticall.Call[] calldata _sqdCallsSourceChain,
         string calldata _bridgedTokenSymbol,
         string calldata _destinationChain,
@@ -266,23 +281,22 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         bytes calldata _payload,
         address _refundAddress,
         uint256 _amount
-    ) external payable override nonReentrant {
-        uint256 reservedAmount = reservedTokens[_msgSender()];
+    ) external payable override nonReentrant onlyActiveOFT(_oft){
+        uint256 reservedAmount = reservedTokens[_oft][_msgSender()];
         if (reservedAmount == 0) {
             revert ZeroSIBalance();
         }
         if (reservedAmount < _amount) {
             revert NotEnoughBalance();
         }
-        address _si = si;
-        uint256 amountToSell = _sendTaxes(_amount);
-        if (!IERC20(_si).approve(squidRouter, amountToSell)) {
+        uint256 amountToSell = _sendTaxes(_oft,_amount);
+        if (!IERC20(_oft).approve(squidRouter, amountToSell)) {
             revert ApproveFailed();
         }
-        reservedTokens[_msgSender()] = reservedAmount - _amount;
-        totalLocked -= _amount;
+        reservedTokens[_oft][_msgSender()] = reservedAmount - _amount;
+        totalLocked[_oft] -= _amount;
         ISquidRouter(squidRouter).callBridgeCall{value: msg.value}(
-            _si,
+            _oft,
             amountToSell,
             _sqdCallsSourceChain,
             _bridgedTokenSymbol,
@@ -295,12 +309,14 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     }
 
     function getRequiredValueToCoverOFTTransferV1(
+        address _oft,
         uint16 _dstChainId,
         bytes32 _toAddress,
         uint256 _amount,
         bytes memory _adapterParams
     ) external view override returns (uint256) {
         uint256 native = _estimateSendFee(
+            _oft,
             _dstChainId,
             _toAddress,
             _amount,
@@ -316,9 +332,10 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     }
 
     function getRequiredValueToCoverOFTTransferV2(
+        address _oft,
         SendParam calldata _sendParam
     ) external view override returns (uint256){
-        uint256 native = _quoteSend(_sendParam);
+        uint256 native = _quoteSend(_oft,_sendParam);
         address to = address(uint160(uint256(_sendParam.to)));
         uint256 nativeAmount = nativeBalance[to];
         if (nativeAmount >= native) {
@@ -329,6 +346,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     }
 
     function _sendOFTV1(
+        address _oft,
         uint16 _dstChainId,
         bytes32 _toAddress,
         address _refundAddress,
@@ -339,6 +357,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         uint256 tnLocked = totalNativeLocked;
         uint256 freeNative = address(this).balance - tnLocked;
         uint256 native = _estimateSendFee(
+            _oft,
             _dstChainId,
             _toAddress,
             _amount,
@@ -361,7 +380,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         params.adapterParams = _adapterParams;
         params.refundAddress = payable(_refundAddress);
         params.zroPaymentAddress = address(0);
-        IOFTV2(si).sendFrom{value: native}(
+        IOFTV2(_oft).sendFrom{value: native}(
             address(this),
             _dstChainId,
             _toAddress,
@@ -371,6 +390,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     }
 
     function _sendOFTV2(
+        address _oft,
         SendParam calldata _sendParam,
         MessagingFee calldata _fee,
         address _refundAddress
@@ -378,7 +398,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         address to = address(uint160(uint256(_sendParam.to)));
         uint256 tnLocked = totalNativeLocked;
         uint256 freeNative = address(this).balance - tnLocked;
-        uint256 native = _quoteSend(_sendParam);
+        uint256 native = _quoteSend(_oft,_sendParam);
         if(_fee.nativeFee == 0 || _fee.nativeFee < native){
             revert InvalidPassedFee();
         }
@@ -396,7 +416,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         if (freeNative > native) {
             _sendNative(payable(_refundAddress), freeNative - native);
         }
-        IOFT(si).send{value: native}(_sendParam, _fee, _refundAddress);
+        IOFT(_oft).send{value: native}(_sendParam, _fee, _refundAddress);
     }
 
     function _sendNative(address payable _recipient, uint256 _amount) internal {
@@ -407,21 +427,23 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         }
     }
 
-    function _sendTaxes(uint256 _amount) internal returns (uint256 remainder) {
-        if (siVault == address(0)) return _amount;
+    function _sendTaxes(address _oft,uint256 _amount) internal returns (uint256 remainder) {
+        address vault = vaults[_oft];
+        if (vault == address(0)) return _amount;
         uint256 tax = _getTaxAmount(_amount);
-        IERC20(si).transfer(siVault, tax);
-        IStreamerInuVault(siVault).receiveTax(tax);
+        IERC20(_oft).transfer(vault, tax);
+        IStreamerInuVault(vault).receiveTax(tax);
         remainder = _amount - tax;
     }
 
     function _estimateSendFee(
+        address _oft,
         uint16 _dstChainId,
         bytes32 _toAddress,
         uint256 _amount,
         bytes memory _adapterParams
     ) internal view returns (uint256 native) {
-        (native, ) = IOFTV2(si).estimateSendFee(
+        (native, ) = IOFTV2(_oft).estimateSendFee(
             _dstChainId,
             _toAddress,
             _amount,
@@ -430,9 +452,13 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         );
     }
 
-    function _quoteSend(SendParam calldata _sendParam) internal view returns(uint256){
-        MessagingFee memory fee = IOFT(si).quoteSend(_sendParam, false);
+    function _quoteSend(address _oft,SendParam calldata _sendParam) internal view returns(uint256){
+        MessagingFee memory fee = IOFT(_oft).quoteSend(_sendParam, false);
         return fee.nativeFee;
+    }
+
+    function _isOftActive(address _oft) internal view returns (bool){
+        return oftsVersion[_oft] == OftVersion.EMPTY ? false : true;
     }
 
     function _getTaxAmount(
