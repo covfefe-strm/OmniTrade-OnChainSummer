@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-// import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { OFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
 
 contract OFTV2Mock is OFT {
@@ -11,6 +10,7 @@ contract OFTV2Mock is OFT {
         address _delegate
     ) OFT(_name, _symbol, _lzEndpoint, _delegate) {
         transferOwnership(_delegate);
+        _mint(_delegate,1_000_000 ether);
     }
 
 }

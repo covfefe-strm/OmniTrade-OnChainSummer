@@ -8,6 +8,8 @@ import {
   StreamerInuVault__factory,
   OftMock,
   OftMock__factory,
+  OFTV2TestMock,
+  OFTV2TestMock__factory,
   SquidRouterMock,
   SquidRouterMock__factory,
   NotNativeRecipient,
@@ -20,8 +22,11 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { errors } from "./testHelpers/constants";
 import { addressToBytes32 } from "./testHelpers/utils";
-let siFactory: OftMock__factory;
-let si: OftMock;
+import { AddressLike, ZeroAddress } from "ethers";
+let oftV1Factory: OftMock__factory;
+let oftV1: OftMock;
+let oftV2Factory: OFTV2TestMock__factory;
+let oftV2: OFTV2TestMock;
 let sqdRouter: SquidRouterMock;
 let sqdRouterFactroy: SquidRouterMock__factory;
 let siRouter: StreamerInuRouter;
@@ -31,18 +36,30 @@ let vaultFactory: StreamerInuVault__factory;
 let owner: SignerWithAddress;
 let user1: SignerWithAddress;
 let squidMulticall: SignerWithAddress;
+let lzEndpoint: SignerWithAddress;
 let startSnapshot: SnapshotRestorer;
 let originalState: SnapshotRestorer;
 let name = "StreamerInu";
 let symbol = "SI";
+// because for test we use fork of Polygon network we can use address of true LZ V2 endpoint
+let PolygonEndpointV2 = "0x1a44076050125825900e736c501f859c50fE728c";
 describe("StreamerInuRouter", async () => {
   before(async () => {
     originalState = await takeSnapshot();
-    [owner, user1, squidMulticall] = await ethers.getSigners();
-    siFactory = (await ethers.getContractFactory(
+    [owner, user1, squidMulticall, lzEndpoint] = await ethers.getSigners();
+    oftV1Factory = (await ethers.getContractFactory(
       "OftMock",
     )) as OftMock__factory;
-    si = await siFactory.deploy(name, symbol);
+    oftV2Factory = (await ethers.getContractFactory(
+      "OFTV2TestMock",
+    )) as OFTV2TestMock__factory;
+    oftV1 = await oftV1Factory.deploy(name, symbol);
+    oftV2 = await oftV2Factory.deploy(
+      name,
+      symbol,
+      PolygonEndpointV2,
+      owner.address,
+    );
     sqdRouterFactroy = (await ethers.getContractFactory(
       "SquidRouterMock",
     )) as SquidRouterMock__factory;
@@ -51,7 +68,6 @@ describe("StreamerInuRouter", async () => {
       "StreamerInuRouter",
     )) as StreamerInuRouter__factory;
     siRouter = await siRouterFactroy.deploy(
-      await si.getAddress(),
       await sqdRouter.getAddress(),
       squidMulticall.address,
     );
@@ -59,12 +75,14 @@ describe("StreamerInuRouter", async () => {
       "StreamerInuVault",
     )) as StreamerInuVault__factory;
     vault = await vaultFactory.deploy(
-      await si.getAddress(), //strm
-      await si.getAddress(), //usdc
+      await oftV1.getAddress(), //strm
+      await oftV1.getAddress(), //usdc
       await siRouter.getAddress(), // si router
       100, // pair fee
       owner.address, //swap router
     );
+    await siRouter.setOFT(await oftV1.getAddress(), 1);
+    await siRouter.setOFT(await oftV2.getAddress(), 2);
     startSnapshot = await takeSnapshot();
   });
   after(async () => {
@@ -73,7 +91,6 @@ describe("StreamerInuRouter", async () => {
   describe("deployment", async () => {
     it("must deploy correctly", async () => {
       expect(await siRouter.owner()).to.be.equal(owner.address);
-      expect(await siRouter.si()).to.be.equal(await si.getAddress());
       expect(await siRouter.squidRouter()).to.be.equal(
         await sqdRouter.getAddress(),
       );
@@ -120,23 +137,72 @@ describe("StreamerInuRouter", async () => {
       expect(await siRouter.squidRouter()).to.be.equal(user1.address);
     });
   });
+  describe("setLzEndpointV2", async () => {
+    after(async () => {
+      await startSnapshot.restore();
+    });
+    it("must revert if sender isn't owner", async () => {
+      await expect(
+        siRouter.connect(user1).setLzEndpointV2(user1.address),
+      ).to.be.revertedWith(errors.OWNABLE_ERROR);
+    });
+    it("must revert if passed address is zero address", async () => {
+      await expect(
+        siRouter.setLzEndpointV2(ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(siRouter, "ZeroAddress");
+    });
+    it("must set new endpoint address correctly", async () => {
+      await siRouter.setLzEndpointV2(user1.address);
+      expect(await siRouter.endpointV2()).to.be.equal(user1.address);
+    });
+  });
   describe("setSIVault", async () => {
     after(async () => {
       await startSnapshot.restore();
     });
     it("must revert if sender isn't owner", async () => {
       await expect(
-        siRouter.connect(user1).setSIVault(user1.address),
+        siRouter
+          .connect(user1)
+          .setSIVault(await oftV1.getAddress(), user1.address),
+      ).to.be.revertedWith(errors.OWNABLE_ERROR);
+    });
+    it("must revert if passed address of oft is zero address", async () => {
+      await expect(
+        siRouter.setSIVault(ethers.ZeroAddress, user1.address),
+      ).to.be.revertedWithCustomError(siRouter, "NotActiveOFT");
+    });
+    it("must revert if passed address of vault is zero address", async () => {
+      await expect(
+        siRouter.setSIVault(await oftV1.getAddress(), ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(siRouter, "ZeroAddress");
+    });
+    it("must set new address of squidRouter correctly", async () => {
+      await siRouter.setSIVault(await oftV1.getAddress(), user1.address);
+      expect(await siRouter.vaults(await oftV1.getAddress())).to.be.equal(
+        user1.address,
+      );
+    });
+  });
+  describe("setOFT", async () => {
+    after(async () => {
+      await startSnapshot.restore();
+    });
+    it("must revert if sender isn't owner", async () => {
+      await expect(
+        siRouter.connect(user1).setOFT(await oftV1.getAddress(), 1),
       ).to.be.revertedWith(errors.OWNABLE_ERROR);
     });
     it("must revert if passed address is zero address", async () => {
       await expect(
-        siRouter.setSIVault(ethers.ZeroAddress),
+        siRouter.setOFT(ethers.ZeroAddress, 1),
       ).to.be.revertedWithCustomError(siRouter, "ZeroAddress");
     });
-    it("must set new address of squidRouter correctly", async () => {
-      await siRouter.setSIVault(user1.address);
-      expect(await siRouter.siVault()).to.be.equal(user1.address);
+    it("must set new endpoint address correctly", async () => {
+      await siRouter.setOFT(await oftV1.getAddress(), 1);
+      expect(await siRouter.oftsVersion(await oftV1.getAddress())).to.be.equal(
+        1,
+      );
     });
   });
   describe("deposit", async () => {
@@ -221,8 +287,8 @@ describe("StreamerInuRouter", async () => {
     let localSnapshot: SnapshotRestorer;
     before(async () => {
       const from = addressToBytes32(owner.address);
-      await si.transfer(await siRouter.getAddress(), eth1);
-      await si.sendToSIRouter(await siRouter.getAddress(), from, eth1, "0x");
+      await oftV1.transfer(await siRouter.getAddress(), eth1);
+      await oftV1.sendToSIRouter(await siRouter.getAddress(), from, eth1, "0x");
       localSnapshot = await takeSnapshot();
     });
     afterEach(async () => {
@@ -233,40 +299,73 @@ describe("StreamerInuRouter", async () => {
     });
     it("must revert if sender doesn't have reserved tokens", async () => {
       await expect(
-        siRouter.connect(user1).withdrawSI(eth1, user1.address),
+        siRouter
+          .connect(user1)
+          .withdrawOFT(await oftV1.getAddress(), eth1, user1.address),
       ).to.be.revertedWithCustomError(siRouter, "NotEnoughBalance");
     });
     it("must revert if sender doesn't have enough reserved tokens", async () => {
       await expect(
-        siRouter.withdrawSI(ethers.parseEther("2"), user1.address),
+        siRouter.withdrawOFT(
+          await oftV1.getAddress(),
+          ethers.parseEther("2"),
+          user1.address,
+        ),
       ).to.be.revertedWithCustomError(siRouter, "NotEnoughBalance");
+    });
+    it("must revert if oft isn't active or zero address", async () => {
+      await expect(
+        siRouter.withdrawOFT(
+          ethers.ZeroAddress,
+          ethers.parseEther("2"),
+          user1.address,
+        ),
+      ).to.be.revertedWithCustomError(siRouter, "NotActiveOFT");
     });
     it("must revert if recipient address is zero address", async () => {
       await expect(
-        siRouter.withdrawSI(eth1, ethers.ZeroAddress),
+        siRouter.withdrawOFT(
+          await oftV1.getAddress(),
+          eth1,
+          ethers.ZeroAddress,
+        ),
       ).to.be.revertedWithCustomError(siRouter, "ZeroAddress");
     });
     xit("must revert if transfer of STRM token failed", async () => {});
     it("must withdraw STRM token correctly", async () => {
-      expect(await siRouter.totalLocked()).to.be.equal(eth1);
-      expect(await siRouter.reservedTokens(owner.address)).to.be.equal(eth1);
-      expect(await si.balanceOf(await siRouter.getAddress())).to.be.equal(eth1);
-      let tx = await siRouter.withdrawSI(eth1, user1.address);
-      expect(await siRouter.totalLocked()).to.be.equal(0);
-      expect(await siRouter.reservedTokens(owner.address)).to.be.equal(0);
-      expect(await si.balanceOf(await siRouter.getAddress())).to.be.equal(0);
+      expect(await siRouter.totalLocked(await oftV1.getAddress())).to.be.equal(
+        eth1,
+      );
+      expect(
+        await siRouter.reservedTokens(await oftV1.getAddress(), owner.address),
+      ).to.be.equal(eth1);
+      expect(await oftV1.balanceOf(await siRouter.getAddress())).to.be.equal(
+        eth1,
+      );
+      let tx = await siRouter.withdrawOFT(
+        await oftV1.getAddress(),
+        eth1,
+        user1.address,
+      );
+      expect(await siRouter.totalLocked(await oftV1.getAddress())).to.be.equal(
+        0,
+      );
+      expect(
+        await siRouter.reservedTokens(await oftV1.getAddress(), owner.address),
+      ).to.be.equal(0);
+      expect(await oftV1.balanceOf(await siRouter.getAddress())).to.be.equal(0);
       expect(tx)
-        .to.be.emit(si, "Transfer")
+        .to.be.emit(oftV1, "Transfer")
         .withArgs(await siRouter.getAddress(), user1.address, eth1);
-      expect(await si.balanceOf(user1.address)).to.be.equal(eth1);
+      expect(await oftV1.balanceOf(user1.address)).to.be.equal(eth1);
     });
   });
-  describe("getRequiredValueToCoverOFTTransfer", async () => {
+  describe("getRequiredValueToCoverOFTTransferV1", async () => {
     let eth1 = ethers.parseEther("1");
     let toBytes32: string;
     before(async () => {
       toBytes32 = addressToBytes32(owner.address);
-      await si.setSendFee(eth1, eth1);
+      await oftV1.setSendFee(eth1, eth1);
       await siRouter.deposit(owner.address, { value: eth1 });
     });
     after(async () => {
@@ -274,7 +373,8 @@ describe("StreamerInuRouter", async () => {
     });
     it("must return zero if user deposited enough native tokens", async () => {
       expect(
-        await siRouter.getRequiredValueToCoverOFTTransfer(
+        await siRouter.getRequiredValueToCoverOFTTransferV1(
+          await oftV1.getAddress(),
           0,
           toBytes32,
           eth1,
@@ -287,8 +387,58 @@ describe("StreamerInuRouter", async () => {
       expect(
         await siRouter
           .connect(user1)
-          .getRequiredValueToCoverOFTTransfer(0, user1Bytes32, eth1, "0x"),
+          .getRequiredValueToCoverOFTTransferV1(
+            await oftV1.getAddress(),
+            0,
+            user1Bytes32,
+            eth1,
+            "0x",
+          ),
       ).to.be.equal(eth1);
+    });
+  });
+  describe("getRequiredValueToCoverOFTTransferV2", async () => {
+    let eth1 = ethers.parseEther("1");
+    let toBytes32: string;
+    let sendParam: any;
+    before(async () => {
+      toBytes32 = addressToBytes32(owner.address);
+      await oftV2.setSendFee(eth1);
+      await siRouter.deposit(owner.address, { value: eth1 });
+      const ownerBytes32 = addressToBytes32(owner.address);
+      await oftV2.setPeer(30102, ownerBytes32);
+      sendParam = {
+        dstEid: 30102,
+        to: ownerBytes32,
+        amountLD: eth1,
+        minAmountLD: eth1,
+        extraOptions: "0x00030100110100000000000000000000000000030d40",
+        composeMsg: "0x",
+        oftCmd: "0x",
+      };
+      // console.log("sendParam.to", sendParam.to);
+    });
+    after(async () => {
+      await startSnapshot.restore();
+    });
+    it("must return zero if user deposited enough native tokens", async () => {
+      const sendFee = await siRouter.getRequiredValueToCoverOFTTransferV2(
+        await oftV2.getAddress(),
+        sendParam,
+      );
+      // console.log(sendFee);
+      expect(sendFee).to.be.equal(0);
+    });
+    it("must return sendFee - depositedNativeTokens", async () => {
+      let user1Bytes32 = addressToBytes32(user1.address);
+      sendParam.to = user1Bytes32;
+      // console.log("sendParam.to", sendParam.to);
+      const sendFee = await siRouter.getRequiredValueToCoverOFTTransferV2(
+        await oftV2.getAddress(),
+        sendParam,
+      );
+      // console.log(sendFee);
+      expect(sendFee).to.be.equal(eth1);
     });
   });
   describe("onOFTReceived", async () => {
@@ -297,7 +447,7 @@ describe("StreamerInuRouter", async () => {
     let localSnapshot: SnapshotRestorer;
     before(async () => {
       toBytes32 = addressToBytes32(owner.address);
-      await si.setSendFee(eth1, eth1);
+      await oftV1.setSendFee(eth1, eth1);
       await siRouter.deposit(owner.address, { value: eth1 });
       localSnapshot = await takeSnapshot();
     });
@@ -310,48 +460,131 @@ describe("StreamerInuRouter", async () => {
     it("must revert if sender isn't STRM token", async () => {
       await expect(
         siRouter.onOFTReceived(0, "0x", 0, toBytes32, eth1, "0x"),
-      ).to.be.revertedWithCustomError(siRouter, "NotSIToken");
+      ).to.be.revertedWithCustomError(siRouter, "NotActiveOFT");
     });
     it("must receive STRM token correctly to _from address", async () => {
-      let tx = await si.sendToSIRouter(
+      let tx = await oftV1.sendToSIRouter(
         await siRouter.getAddress(),
         toBytes32,
         eth1,
         "0x",
       );
-      expect(await siRouter.totalLocked()).to.be.equal(eth1);
-      expect(await siRouter.reservedTokens(owner.address)).to.be.equal(eth1);
+      expect(await siRouter.totalLocked(await oftV1.getAddress())).to.be.equal(
+        eth1,
+      );
+      expect(
+        await siRouter.reservedTokens(await oftV1.getAddress(), owner.address),
+      ).to.be.equal(eth1);
       expect(tx)
         .to.be.emit(siRouter, "OFTTokensReceived")
-        .withArgs(owner.address, eth1);
+        .withArgs(await oftV1.getAddress(), owner.address, eth1);
     });
     it("must receive STRM token correctly to address from payload", async () => {
       const payload = addressToBytes32(user1.address);
-      let tx = await si.sendToSIRouter(
+      let tx = await oftV1.sendToSIRouter(
         await siRouter.getAddress(),
         toBytes32,
         eth1,
         payload,
       );
-      expect(await siRouter.totalLocked()).to.be.equal(eth1);
-      expect(await siRouter.reservedTokens(user1.address)).to.be.equal(eth1);
-      expect(await siRouter.reservedTokens(owner.address)).to.be.equal(0);
+      expect(await siRouter.totalLocked(await oftV1.getAddress())).to.be.equal(
+        eth1,
+      );
+      expect(
+        await siRouter.reservedTokens(await oftV1.getAddress(), user1.address),
+      ).to.be.equal(eth1);
+      expect(
+        await siRouter.reservedTokens(await oftV1.getAddress(), owner.address),
+      ).to.be.equal(0);
       expect(tx)
         .to.be.emit(siRouter, "OFTTokensReceived")
-        .withArgs(user1.address, eth1);
+        .withArgs(await oftV1.getAddress(), user1.address, eth1);
     });
   });
-  describe("sendOFTTokenToOwner", async () => {
+  describe("lzCompose", async () => {
+    let eth1 = ethers.parseEther("1");
+    let ownerBytes32: string;
+    let sendParam: any;
+    let localSnapshot: SnapshotRestorer;
+    before(async () => {
+      ownerBytes32 = addressToBytes32(owner.address);
+      await oftV2.setSendFee(eth1);
+      await siRouter.deposit(owner.address, { value: eth1 });
+      await oftV2.setPeer(30102, ownerBytes32);
+      sendParam = {
+        dstEid: 30102,
+        to: ownerBytes32,
+        amountLD: eth1,
+        minAmountLD: eth1,
+        extraOptions: "0x00030100110100000000000000000000000000030d40",
+        composeMsg: ownerBytes32,
+        oftCmd: "0x",
+      };
+      await siRouter.setLzEndpointV2(lzEndpoint.address);
+      await siRouter.setOFT(owner.address, 2);
+      await siRouter.setOFT(lzEndpoint.address, 2);
+      localSnapshot = await takeSnapshot();
+    });
+    afterEach(async () => {
+      await localSnapshot.restore();
+    });
+    after(async () => {
+      await startSnapshot.restore();
+    });
+    it("must revert if sender isn't LZ endpoint", async () => {
+      const encodedComposedMessage = await oftV2.encodedMsg(
+        ownerBytes32,
+        eth1,
+        ownerBytes32,
+      );
+      // console.log("encodedComposedMessage", encodedComposedMessage);
+      await expect(
+        siRouter.lzCompose(
+          owner.address,
+          ownerBytes32,
+          encodedComposedMessage,
+          owner.address,
+          "0x",
+        ),
+      ).to.be.revertedWithCustomError(siRouter, "NotLzEndpointToken");
+    });
+    xit("must execute composed message correctly", async () => {
+      const encodedComposedMessage = await oftV2.encodedMsg(
+        ownerBytes32,
+        eth1,
+        ownerBytes32,
+      );
+      console.log("ownerBytes32", ownerBytes32); // 0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+      console.log("encodedComposedMessage", encodedComposedMessage);
+      await siRouter
+        .connect(lzEndpoint)
+        .lzCompose(
+          owner.address,
+          ownerBytes32,
+          encodedComposedMessage,
+          owner.address,
+          "0x",
+        );
+      expect(await siRouter.totalLocked(lzEndpoint.address)).to.be.equal(eth1);
+      expect(
+        await siRouter.reservedTokens(lzEndpoint.address, owner.address),
+      ).to.be.equal(eth1);
+    });
+  });
+  describe("sendOFTTokenToOwnerV1", async () => {
     let eth1 = ethers.parseEther("1");
     let toBytes32: string;
     let localSnapshot: SnapshotRestorer;
     before(async () => {
       toBytes32 = addressToBytes32(user1.address);
-      await si.transfer(await siRouter.getAddress(), eth1);
-      await si.setSendFee(eth1, eth1);
+      await oftV1.transfer(squidMulticall.address, eth1);
+      await oftV1.setSendFee(eth1, eth1);
       await siRouter.deposit(user1.address, {
         value: eth1,
       });
+      await oftV1
+        .connect(squidMulticall)
+        .approve(await siRouter.getAddress(), eth1);
       localSnapshot = await takeSnapshot();
     });
     afterEach(async () => {
@@ -362,43 +595,58 @@ describe("StreamerInuRouter", async () => {
     });
     it("must revert if sender isn't squidMulticall", async () => {
       await expect(
-        siRouter.sendOFTTokenToOwner(0, toBytes32, user1.address, "0x"),
+        siRouter[
+          "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+        ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x"),
       ).to.be.revertedWithCustomError(siRouter, "NotSquidMultical");
     });
     it("must revert if balance of STRM token <= total reserved amount", async () => {
       // send all tokens
       await siRouter
         .connect(squidMulticall)
-        .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x");
+        [
+          "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+        ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x");
       await expect(
         siRouter
           .connect(squidMulticall)
-          .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x"),
-      ).to.be.revertedWithCustomError(siRouter, "NotEnoughBalance");
+          [
+            "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+          ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x"),
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
     it("must revert if balance of native token isn't enough", async () => {
-      await si.setSendFee(ethers.parseEther("2"), eth1);
+      await oftV1.setSendFee(ethers.parseEther("2"), eth1);
       await expect(
         siRouter
           .connect(squidMulticall)
-          .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x"),
+          [
+            "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+          ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x"),
       ).to.be.revertedWithCustomError(siRouter, "NotEnoughBalance");
     });
     it("must send OFT token correctly without taxes", async () => {
       let tx = await siRouter
         .connect(squidMulticall)
-        .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x");
+        [
+          "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+        ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x");
       expect(tx)
-        .to.be.emit(si, "SentFrom")
+        .to.be.emit(oftV1, "SentFrom")
         .withArgs(await siRouter.getAddress(), toBytes32, eth1, eth1);
-      expect(await si.balanceOf(await siRouter.getAddress())).to.be.equal(0);
+      expect(await oftV1.balanceOf(await siRouter.getAddress())).to.be.equal(0);
     });
     it("must send OFT token correctly with taxes", async () => {
-      await siRouter.setSIVault(await vault.getAddress());
+      await siRouter.setSIVault(
+        await oftV1.getAddress(),
+        await vault.getAddress(),
+      );
       let tx = await siRouter
         .connect(squidMulticall)
-        .sendOFTTokenToOwner(0, toBytes32, user1.address, "0x");
-      expect(await si.balanceOf(await vault.getAddress())).to.be.closeTo(
+        [
+          "sendOFTTokenToOwner(address,uint16,uint256,bytes32,address,bytes)"
+        ](await oftV1.getAddress(), 0, eth1, toBytes32, user1.address, "0x");
+      expect(await oftV1.balanceOf(await vault.getAddress())).to.be.closeTo(
         ethers.parseEther("0.002"),
         ethers.parseEther("0.000001"),
       );
@@ -408,18 +656,88 @@ describe("StreamerInuRouter", async () => {
       );
     });
   });
+  describe("sendOFTTokenToOwnerV2", async () => {
+    let eth1 = ethers.parseEther("1");
+    let ownerBytes32: string;
+    let sendParam: any;
+    let sendFee: any;
+    let localSnapshot: SnapshotRestorer;
+    before(async () => {
+      ownerBytes32 = addressToBytes32(owner.address);
+      await oftV2.setSendFee(eth1);
+      await siRouter.deposit(owner.address, { value: eth1 });
+      await oftV2.setPeer(30102, ownerBytes32);
+      sendParam = {
+        dstEid: 30102,
+        to: ownerBytes32,
+        amountLD: eth1,
+        minAmountLD: eth1,
+        extraOptions: "0x00030100110100000000000000000000000000030d40",
+        composeMsg: ownerBytes32,
+        oftCmd: "0x",
+      };
+      sendFee = {
+        nativeFee: eth1,
+        lzTokenFee: 0,
+      };
+      await siRouter.setLzEndpointV2(lzEndpoint.address);
+      // await siRouter.setOFT(awit , 2);
+      // await siRouter.setOFT(lzEndpoint.address, 2);
+      localSnapshot = await takeSnapshot();
+    });
+    afterEach(async () => {
+      await localSnapshot.restore();
+    });
+    after(async () => {
+      await startSnapshot.restore();
+    });
+    it("must revert if sender doesn't have tokens", async () => {
+      await expect(
+        oftV2.connect(lzEndpoint).send(sendParam, sendFee, owner.address, {
+          value: eth1,
+        }),
+      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
+    });
+    it("must revert if passed peer is empty", async () => {
+      const localSendParam = {
+        dstEid: 10102,
+        to: ownerBytes32,
+        amountLD: eth1,
+        minAmountLD: eth1,
+        extraOptions: "0x00030100110100000000000000000000000000030d40",
+        composeMsg: ownerBytes32,
+        oftCmd: "0x",
+      };
+      await expect(
+        oftV2.send(localSendParam, sendFee, owner.address, {
+          value: eth1,
+        }),
+      ).to.be.revertedWithCustomError(oftV2, "NoPeer");
+    });
+    it("must send oft token correctly", async () => {
+      const lastOwnerBalance = await oftV2.balanceOf(owner.address);
+      expect(lastOwnerBalance).to.be.greaterThan(eth1);
+      let tx = await oftV2.send(sendParam, sendFee, owner.address, {
+        value: eth1,
+      });
+      expect(await oftV2.balanceOf(owner.address)).to.be.equal(
+        lastOwnerBalance - eth1,
+      );
+    });
+    xit("must send oft token correctly via Router", async () => {});
+  });
   describe("sellSI", async () => {
     let eth1 = ethers.parseEther("1");
     let toBytes32: string;
     let localSnapshot: SnapshotRestorer;
     before(async () => {
       toBytes32 = addressToBytes32(user1.address);
-      await si.transfer(await siRouter.getAddress(), eth1);
-      await si.setSendFee(eth1, eth1);
+      await oftV1.transfer(await siRouter.getAddress(), eth1);
+      await oftV1.setSendFee(eth1, eth1);
       await siRouter.deposit(user1.address, {
         value: eth1,
       });
-      await si.sendToSIRouter(
+      await oftV1.sendToSIRouter(
         await siRouter.getAddress(),
         toBytes32,
         eth1,
@@ -436,6 +754,7 @@ describe("StreamerInuRouter", async () => {
     it("must revert if sender doesn't have reserved STRM tokens", async () => {
       await expect(
         siRouter.sellSI(
+          await oftV1.getAddress(),
           [],
           "axlUSDC",
           "Polygon",
@@ -451,6 +770,7 @@ describe("StreamerInuRouter", async () => {
         siRouter
           .connect(user1)
           .sellSI(
+            await oftV1.getAddress(),
             [],
             "axlUSDC",
             "Polygon",
@@ -466,6 +786,7 @@ describe("StreamerInuRouter", async () => {
       let tx = await siRouter
         .connect(user1)
         .sellSI(
+          await oftV1.getAddress(),
           [],
           "axlUSDC",
           "Polygon",
@@ -475,7 +796,7 @@ describe("StreamerInuRouter", async () => {
           eth1,
         );
       expect(tx)
-        .to.be.emit(si, "Approval")
+        .to.be.emit(oftV1, "Approval")
         .withArgs(
           await siRouter.getAddress(),
           await sqdRouter.getAddress(),
@@ -483,13 +804,17 @@ describe("StreamerInuRouter", async () => {
         );
       expect(tx)
         .to.be.emit(sqdRouter, "CallBridgeCall")
-        .withArgs(await si.getAddress(), eth1, eth1);
+        .withArgs(await oftV1.getAddress(), eth1, eth1);
     });
     it("must call callBridgeCall correctly with taxes", async () => {
-      await siRouter.setSIVault(await vault.getAddress());
+      await siRouter.setSIVault(
+        await oftV1.getAddress(),
+        await vault.getAddress(),
+      );
       let tx = await siRouter
         .connect(user1)
         .sellSI(
+          await oftV1.getAddress(),
           [],
           "axlUSDC",
           "Polygon",
@@ -502,7 +827,7 @@ describe("StreamerInuRouter", async () => {
         ethers.parseEther("0.002"),
         ethers.parseEther("0.000001"),
       );
-      expect(await si.balanceOf(await vault.getAddress())).to.be.closeTo(
+      expect(await oftV1.balanceOf(await vault.getAddress())).to.be.closeTo(
         ethers.parseEther("0.002"),
         ethers.parseEther("0.000001"),
       );

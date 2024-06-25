@@ -9,7 +9,9 @@ contract OFTMintMock is StreamerInuToken {
         uint8 _sharedDecimals,
         address _lzEndpoint,
         address _recipient
-    ) StreamerInuToken(_name,_symbol,_sharedDecimals,_lzEndpoint,_recipient){}
+    ) StreamerInuToken(_name,_symbol,_sharedDecimals,_lzEndpoint,_recipient){
+        _mint(_recipient,1_000_000 ether);
+    }
 
     function mint(address recipient, uint256 amount) external onlyOwner() {
         _mint(recipient,amount);

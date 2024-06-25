@@ -10,7 +10,7 @@ interface IStreamerInuRouter {
         OFTV2
     }
     /// @dev Emits when the contract receive STRM token after cross chain transfer
-    event OFTTokensReceived(address indexed recipient, uint256 amount);
+    event OFTTokensReceived(address indexed oft, address indexed recipient, uint256 amount);
     /// @dev Emits when the contract receive STRM V2 token after cross chain transfer
     event OFTV2TokensReceived(address indexed recipient, uint256 amount);
     /// @dev Emits when sender deposited native token;
@@ -54,7 +54,9 @@ interface IStreamerInuRouter {
 
     function setSquidRouter(address _squidRouter) external;
 
-    function setLzEndpoint(address _endpoint) external;
+    function setLzEndpointV2(address _endpoint) external;
+
+    function setOFT(address _oft, OftVersion version) external;
 
     function setSIVault(address _oft,address _siVault) external;
 

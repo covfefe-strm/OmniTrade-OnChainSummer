@@ -133,7 +133,7 @@ describe("UniswapTaxTest", async () => {
     );
     let amount = ethers.parseEther("10000");
     let amountToAdd = ethers.parseEther("1000");
-    console.log("pool", pool);
+    // console.log("pool", pool);
     await usdc.connect(tokenOwner).transfer(owner.address, amount);
     await strm.connect(tokenOwner).transfer(owner.address, amount);
     // transfer ownership of strm ot owner address
@@ -165,11 +165,7 @@ describe("UniswapTaxTest", async () => {
       500,
       await swapRouter.getAddress(),
     );
-    router = await routerFactory.deploy(
-      await strm.getAddress(),
-      SQUID_ROUTER,
-      SQUID_MULTICALL,
-    );
+    router = await routerFactory.deploy(SQUID_ROUTER, SQUID_MULTICALL);
     await strm.setTaxPercent(ethers.parseEther("0.04"));
     await strm.setPair(pool);
     await strm.setSiVault(await siVault.getAddress());

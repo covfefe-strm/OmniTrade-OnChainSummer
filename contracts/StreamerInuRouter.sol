@@ -49,7 +49,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     mapping(address => address) public vaults;
     /// @notice stores address of LayerZero endpoint to support receiving messages from OFT V2
     /// @return address of LayerZero endpoint
-    address public endpoint;
+    address public endpointV2;
     /// @notice stores address of SquidRouter contract
     /// @return address of SquidRouter token
     address public squidRouter;
@@ -65,7 +65,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
     }
 
     modifier oftVersionCheck(OftVersion _version, address _oft) {
-        if (oftsVersion[_oft] == _version) {
+        if (oftsVersion[_oft] != _version) {
             revert VersionMismatch();
         }
         _;
@@ -109,11 +109,11 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         squidRouter = _squidRouter;
     }
 
-    function setLzEndpoint(address _endpoint) external override onlyOwner{
+    function setLzEndpointV2(address _endpoint) external override onlyOwner{
         if (_endpoint == address(0)) {
             revert ZeroAddress();
         }
-        endpoint = _endpoint;
+        endpointV2 = _endpoint;
     }
 
     /// @notice Set new address of StreamerInuVault contract
@@ -127,6 +127,13 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         // TODO add check for vault.si == _oft
         // TODO update IStreamerInuVault interface
         vaults[_oft] = _siVault;
+    }
+
+    function setOFT(address _oft, OftVersion version) external override onlyOwner {
+        if (_oft == address(0)) {
+            revert ZeroAddress();
+        }
+        oftsVersion[_oft] = version;
     }
     
     /// FUNCTIONS FOR CONTRACT CALLS
@@ -191,7 +198,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
             : abi.decode(_payload, (address));
         reservedTokens[_msgSender()][recipient] += _amount;
         totalLocked[_msgSender()] += _amount;
-        emit OFTTokensReceived(recipient, _amount);
+        emit OFTTokensReceived(_msgSender(),recipient, _amount);
     }
 
     function lzCompose(
@@ -201,7 +208,7 @@ contract StreamerInuRouter is IStreamerInuRouter, IOFTReceiverV2, IOAppComposer,
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override onlyActiveOFT(_oApp){
-        if (_msgSender() != endpoint) {
+        if (_msgSender() != endpointV2) {
             revert NotLzEndpointToken();
         }
         // Extract the composed message from the delivered message using the MsgCodec

@@ -2,15 +2,15 @@ import { deployData } from "./helpers/constants";
 import { ethers } from "hardhat";
 import hardhat from "hardhat";
 async function main() {
-  const myOFT = await ethers.getContractFactory("StreamerInuToken");
-  const endpointAddress = deployData.filter((obj) => {
-    return obj.ChainID === hardhat.network.config.chainId;
-  })[0].endpoint;
+  const myOFT = await ethers.getContractFactory("OFTV2Mock");
+  const endpointAddress = "0x6EDCE65403992e310A62460808c4b910D972f10f";
+  // const endpointAddress = deployData.filter((obj) => {
+  //   return obj.ChainID === hardhat.network.config.chainId;
+  // })[0].endpoint;
   const [owner] = await ethers.getSigners();
   const oft = await myOFT.deploy(
-    "StreamerInu", // OFT name
-    "STRM", // OFT symbol
-    8, // shared decimals for your OFT
+    "Funny Test Token", // OFT name
+    "FTT", // OFT symbol
     endpointAddress, // chain endpoint address
     owner.address,
   );
@@ -21,10 +21,9 @@ async function main() {
   await hardhat.run("verify:verify", {
     address: await oft.getAddress(),
     constructorArguments: [
-      "StreamerInu",
-      "STRM",
-      8,
-      endpointAddress,
+      "Funny Test Token", // OFT name
+      "FTT", // OFT symbol
+      endpointAddress, // chain endpoint address
       owner.address,
     ],
   });

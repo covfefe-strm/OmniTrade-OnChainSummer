@@ -75,6 +75,11 @@ const config: HardhatUserConfig = {
       chainId: 97,
       accounts: [`${DEV_PRIVATE_KEY}`],
     },
+    amoy: {
+      url: `https://polygon-amoy.drpc.org`,
+      chainId: 80002,
+      accounts: [`${DEV_PRIVATE_KEY}`],
+    },
     celoAlfajores: {
       url: `https://celo-alfajores.infura.io/v3/${INFURA_API_KEY}`,
       chainId: 44787,
@@ -168,6 +173,7 @@ const config: HardhatUserConfig = {
       mainnet: ETHERSCAN_KEY,
       bsc: BSCSCAN_KEY,
       bscTestnet: BSCSCAN_KEY,
+      amoy: MUMBAISCAN_KEY,
       polygonMumbai: MUMBAISCAN_KEY,
       celoAlfajores: CELOSCAN_KEY,
       celo: CELOSCAN_KEY,
@@ -185,6 +191,14 @@ const config: HardhatUserConfig = {
       fraxtal: FRAXTALSCAN_KEY,
     },
     customChains: [
+      {
+        network: "amoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com/",
+        },
+      },
       {
         network: "arbitrum",
         chainId: 42161,

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {IV3SwapRouter} from "../interfaces/uniswap/IV3SwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-contract SwapRouterMock is ISwapRouter {
+contract SwapRouterMock is IV3SwapRouter {
     address public factory;
     uint256 public counter;
     function uniswapV3SwapCallback(
