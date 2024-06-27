@@ -1,4 +1,4 @@
-# streamer-inu-solidity-smart-contracts
+# Omni-Trade-solidity-smart-contracts
 
 Welcome to the StreamerInu smart contract repository.
 
